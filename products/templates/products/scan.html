@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Barcode Scanner</title>
+</head>
+<body>
+
+<h1>Barcode Scanner</h1>
+
+<div id="reader" style="width: 300px;"></div>
+
+<h2>Scanned barcodes</h2>
+
+<ul id="barcode-list"></ul>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<script>
+const scanner = new Html5Qrcode("reader");
+const list = document.getElementById("barcode-list");
+
+const scanned = new Set();
+
+function onScanSuccess(barcode) {
+    // Don't add the same barcode twice
+    if (scanned.has(barcode)) {
+        return;
+    }
+
+    scanned.add(barcode);
+
+    const item = document.createElement("li");
+    item.textContent = barcode;
+
+    list.appendChild(item);
+}
+
+scanner.start(
+    { facingMode: "environment" },
+    {
+        fps: 10,
+        qrbox: {
+            width: 250,
+            height: 150
+        }
+    },
+    onScanSuccess,
+    () => {
+        // Ignore unsuccessful scans
+    }
+);
+</script>
+
+</body>
+</html>
