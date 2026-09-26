@@ -1,17 +1,88 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Barcode Scanner</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-top: 0;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin-top: 24px;
+        }
+
+        #barcode-list {
+            padding-left: 20px;
+        }
+
+        #barcode-list li {
+            background: white;
+            margin-bottom: 8px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 18px;
+            word-break: break-all;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 32px;
+            }
+
+            h1 {
+                font-size: 30px;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-<h1>Barcode Scanner</h1>
+<div class="container">
 
-<div id="reader" style="width: 300px;"></div>
+    <h1>Barcode Scanner</h1>
 
-<h2>Scanned barcodes</h2>
+    <div id="reader"></div>
 
-<ul id="barcode-list"></ul>
+    <h2>Scanned barcodes</h2>
+
+    <ul id="barcode-list"></ul>
+
+</div>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -22,7 +93,6 @@ const list = document.getElementById("barcode-list");
 const scanned = new Set();
 
 function onScanSuccess(barcode) {
-    // Don't add the same barcode twice
     if (scanned.has(barcode)) {
         return;
     }
@@ -46,7 +116,7 @@ scanner.start(
     },
     onScanSuccess,
     () => {
-        // Ignore unsuccessful scans
+        // Ignora tentativas de leitura sem sucesso
     }
 );
 </script>
