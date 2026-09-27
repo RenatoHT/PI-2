@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block title %}Venda{% endblock %}
+
+{% block header_title %}
+Venda
+{% endblock %}
+
+{% block header_subtitle %}
+Escaneie os produtos
+{% endblock %}
+
+{% block extra_css %}
+
+<style>
+
+
+    #sale-list li {
+        background: white;
+        margin-bottom: 8px;
+        padding: 12px;
+        border-radius: 8px;
+    }
+
+    .manual-code {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+        align-items: center;
+    }
+
+    .manual-code input {
+        width: auto;
+        flex: 1;
+        min-width: 0;
+        min-height: 44px;
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    .manual-code button {
+        width: auto;
+        min-width: 90px;
+        min-height: 44px;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .total {
+        margin-top: 20px;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+<h2>Nova venda</h2>
+
+<div class="manual-code">
+
+    <input
+        type="text"
+        id="barcode-input"
+        placeholder="Digite o código de barras"
+    >
+
+    <button
+        type="button"
+        id="add-barcode"
+    >
+        Adicionar
+    </button>
+
+</div>
+
+<div id="reader"></div>
+
+<hr>
+
+<h2>Produtos</h2>
+
+<ul id="sale-list"></ul>
+
+<div class="total">
+    Total: R$ <span id="total">0,00</span>
+</div>
+
+<button
+    type="button"
+    id="finish-sale"
+>
+    Finalizar venda
+</button>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<script>
+
+const scanner = new Html5Qrcode("reader");
+
+const saleList = document.getElementById("sale-list");
+const totalElement = document.getElementById("total");
+
+const barcodeInput = document.getElementById("barcode-input");
+const addBarcodeButton = document.getElementById("add-barcode");
+
+let sale = [];
+let lastBarcode = null;
+
+
+function addBarcode(barcode) {
+
+    barcode = barcode.trim();
+
+    if (!barcode) {
+        return;
+    }
+
+    fetch(`/mercado/product/${barcode}/`)
+        .then(response => response.json())
+        .then(data => {
+
+            if (!data.found) {
+
+                alert("Produto não encontrado.");
+
+                return;
+            }
+
+            addProduct(data);
+
+            barcodeInput.value = "";
+            barcodeInput.focus();
+
+        })
+        .catch(error => {
+
+            console.error(error);
+
+            alert("Erro ao consultar produto.");
+
+        });
+}
+
+
+function onScanSuccess(barcode) {
+
+    if (barcode === lastBarcode) {
+        return;
+    }
+
+    lastBarcode = barcode;
+
+    addBarcode(barcode);
+
+    setTimeout(() => {
+        lastBarcode = null;
+    }, 1000);
+}
+
+
+function addProduct(product) {
+
+    const existing = sale.find(
+        item => item.barcode === product.barcode
+    );
+
+    if (existing) {
+
+        if (existing.quantity >= product.quantity) {
+
+            alert("Quantidade disponível em estoque atingida.");
+
+            return;
+        }
+
+        existing.quantity += 1;
+
+    } else {
+
+        if (product.quantity <= 0) {
+
+            alert("Produto sem estoque.");
+
+            return;
+        }
+
+        sale.push({
+
+            barcode: product.barcode,
+            name: product.name,
+            price: product.price,
+            quantity: 1,
+            stock: product.quantity
+
+        });
+    }
+
+    renderSale();
+}
+
+
+function renderSale() {
+
+    saleList.innerHTML = "";
+
+    let total = 0;
+
+    sale.forEach(product => {
+
+        const subtotal =
+            product.price * product.quantity;
+
+        total += subtotal;
+
+        const item = document.createElement("li");
+
+        item.textContent =
+            `${product.name} - ` +
+            `${product.quantity} x ` +
+            `R$ ${product.price.toFixed(2)} = ` +
+            `R$ ${subtotal.toFixed(2)}`;
+
+        saleList.appendChild(item);
+
+    });
+
+    totalElement.textContent =
+        total.toFixed(2).replace(".", ",");
+}
+
+
+addBarcodeButton.addEventListener(
+    "click",
+    () => {
+
+        addBarcode(barcodeInput.value);
+
+    }
+);
+
+
+barcodeInput.addEventListener(
+    "keydown",
+    event => {
+
+        if (event.key === "Enter") {
+
+            event.preventDefault();
+
+            addBarcode(barcodeInput.value);
+
+        }
+
+    }
+);
+
+
+document
+    .getElementById("finish-sale")
+    .addEventListener("click", finishSale);
+
+
+function finishSale() {
+
+    if (sale.length === 0) {
+
+        alert("Nenhum produto na venda.");
+
+        return;
+    }
+
+    fetch("/mercado/finish-sale/", {
+
+        method: "POST",
+
+        headers: {
+
+            "Content-Type": "application/json",
+
+            "X-CSRFToken": getCookie("csrftoken")
+
+        },
+
+        body: JSON.stringify({
+
+            products: sale.map(item => ({
+
+                barcode: item.barcode,
+                quantity: item.quantity
+
+            }))
+
+        })
+
+    })
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        if (!data.success) {
+
+            alert(
+                data.error ||
+                "Erro ao finalizar venda."
+            );
+
+            return;
+        }
+
+        alert("Venda finalizada!");
+
+        sale = [];
+
+        renderSale();
+
+    })
+
+    .catch(error => {
+
+        console.error(error);
+
+        alert("Erro ao finalizar venda.");
+
+    });
+}
+
+
+function getCookie(name) {
+
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== "") {
+
+        const cookies = document.cookie.split(";");
+
+        for (let cookie of cookies) {
+
+            cookie = cookie.trim();
+
+            if (cookie.startsWith(name + "=")) {
+
+                cookieValue = decodeURIComponent(
+                    cookie.substring(name.length + 1)
+                );
+
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
+}
+
+
+scanner.start(
+
+    { facingMode: "environment" },
+
+    {
+
+        fps: 10,
+
+        qrbox: {
+            width: 320,
+            height: 120
+        },
+
+        videoConstraints: {
+            facingMode: "environment",
+            focusMode: "continuous"
+        }
+
+    },
+
+    onScanSuccess,
+
+    () => {}
+
+);
+
+</script>
+
+{% endblock %}
