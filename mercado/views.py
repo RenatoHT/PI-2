@@ -4,9 +4,11 @@ import requests
 from .models import Product
 import json
 
+#página de venda
 def scan(request):
     return render(request, "scan.html")
 
+#conulta de estoque
 def product_lookup(request, barcode):
     try:
         product = Product.objects.get(barcode=barcode)
@@ -25,6 +27,7 @@ def product_lookup(request, barcode):
             "barcode": barcode,
         })
 
+#Finalização de venda, subtração de produtos do estoque
 def finish_sale(request):
 
     if request.method != "POST":
@@ -54,6 +57,7 @@ def finish_sale(request):
         "success": True
     })
 
+#Página de estoque
 def stock(request):
     if request.method == "POST":
         action = request.POST.get("action")
@@ -98,6 +102,7 @@ def stock(request):
         {"products": products}
     )
 
+#Consulta API Open Food Facts
 def lookup_product(request, barcode):
     url = f"https://world.openfoodfacts.org/api/v3/product/{barcode}"
 

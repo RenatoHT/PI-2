@@ -1,20 +1,25 @@
+```html
+<!-- Herda a estrutura comum, o cabeçalho e a navegação do template base. -->
 {% extends "base.html" %}
 
+<!-- Define o título exibido na aba do navegador. -->
 {% block title %}Venda{% endblock %}
 
+<!-- Define o título principal do cabeçalho da página. -->
 {% block header_title %}
 Venda
 {% endblock %}
 
+<!-- Define o texto complementar do cabeçalho. -->
 {% block header_subtitle %}
 Escaneie os produtos
 {% endblock %}
 
+<!-- Adiciona os estilos CSS específicos da tela de vendas. -->
 {% block extra_css %}
 
 <style>
-
-
+    /* Define a aparência dos itens adicionados à venda. */
     #sale-list li {
         background: white;
         margin-bottom: 8px;
@@ -22,6 +27,7 @@ Escaneie os produtos
         border-radius: 8px;
     }
 
+    /* Organiza o campo de código de barras e o botão lado a lado. */
     .manual-code {
         display: flex;
         gap: 8px;
@@ -29,6 +35,7 @@ Escaneie os produtos
         align-items: center;
     }
 
+    /* Ajusta o campo de código de barras para ocupar o espaço disponível. */
     .manual-code input {
         width: auto;
         flex: 1;
@@ -38,6 +45,7 @@ Escaneie os produtos
         font-size: 16px;
     }
 
+    /* Ajusta o tamanho do botão de adicionar código. */
     .manual-code button {
         width: auto;
         min-width: 90px;
@@ -46,12 +54,12 @@ Escaneie os produtos
         font-size: 14px;
     }
 
+    /* Destaca o valor total da venda. */
     .total {
         margin-top: 20px;
         font-size: 24px;
         font-weight: bold;
     }
-
 </style>
 
 {% endblock %}
@@ -59,8 +67,10 @@ Escaneie os produtos
 
 {% block content %}
 
+<!-- Título da seção de registro de vendas. -->
 <h2>Nova venda</h2>
 
+<!-- Campo para digitar o código de barras manualmente. -->
 <div class="manual-code">
 
     <input
@@ -69,6 +79,7 @@ Escaneie os produtos
         placeholder="Digite o código de barras"
     >
 
+    <!-- Adiciona à venda o produto correspondente ao código informado. -->
     <button
         type="button"
         id="add-barcode"
@@ -78,18 +89,22 @@ Escaneie os produtos
 
 </div>
 
+<!-- Área utilizada pela biblioteca para exibir a câmera e ler códigos. -->
 <div id="reader"></div>
 
 <hr>
 
+<!-- Seção que lista os produtos incluídos na venda atual. -->
 <h2>Produtos</h2>
 
 <ul id="sale-list"></ul>
 
+<!-- Exibe o valor total calculado dos produtos da venda. -->
 <div class="total">
     Total: R$ <span id="total">0,00</span>
 </div>
 
+<!-- Envia os produtos da venda para o servidor finalizar a operação. -->
 <button
     type="button"
     id="finish-sale"
@@ -100,36 +115,48 @@ Escaneie os produtos
 {% endblock %}
 
 
+<!-- Adiciona o JavaScript específico da tela de vendas. -->
 {% block extra_js %}
 
+<!-- Carrega a biblioteca responsável pela leitura de códigos de barras. -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
 
+// Cria a instância do scanner associada à área de leitura.
 const scanner = new Html5Qrcode("reader");
 
+// Obtém os elementos utilizados para mostrar os produtos e o total.
 const saleList = document.getElementById("sale-list");
 const totalElement = document.getElementById("total");
 
+// Obtém o campo de código de barras e o botão de adicionar.
 const barcodeInput = document.getElementById("barcode-input");
 const addBarcodeButton = document.getElementById("add-barcode");
 
+// Armazena temporariamente os produtos incluídos na venda.
+// lastBarcode evita processar repetidamente a mesma leitura em sequência.
 let sale = [];
 let lastBarcode = null;
 
 
+// Consulta o produto pelo código de barras e tenta adicioná-lo à venda.
 function addBarcode(barcode) {
 
+    // Remove espaços em branco no início e no final do código.
     barcode = barcode.trim();
 
+    // Não realiza a consulta se o campo estiver vazio.
     if (!barcode) {
         return;
     }
 
+    // Consulta a rota Django que procura o produto no banco de dados.
     fetch(`/mercado/product/${barcode}/`)
         .then(response => response.json())
         .then(data => {
 
+            // Informa ao usuário quando o produto não foi encontrado.
             if (!data.found) {
 
                 alert("Produto não encontrado.");
@@ -137,46 +164,59 @@ function addBarcode(barcode) {
                 return;
             }
 
+            // Adiciona o produto à venda ou incrementa sua quantidade.
             addProduct(data);
 
+            // Limpa o campo e devolve o foco para facilitar a próxima leitura.
             barcodeInput.value = "";
             barcodeInput.focus();
 
         })
         .catch(error => {
 
+            // Registra no console um eventual erro na consulta.
             console.error(error);
 
+            // Informa que ocorreu um erro ao consultar o produto.
             alert("Erro ao consultar produto.");
 
         });
 }
 
 
+// Executada quando a câmera identifica um código de barras.
 function onScanSuccess(barcode) {
 
+    // Ignora leituras repetidas do mesmo código dentro do intervalo.
     if (barcode === lastBarcode) {
         return;
     }
 
+    // Guarda o último código lido para evitar duplicações imediatas.
     lastBarcode = barcode;
 
+    // Consulta o produto e tenta adicioná-lo à venda.
     addBarcode(barcode);
 
+    // Libera uma nova leitura após um segundo.
     setTimeout(() => {
         lastBarcode = null;
     }, 1000);
 }
 
 
+// Adiciona um produto à venda ou aumenta sua quantidade.
 function addProduct(product) {
 
+    // Verifica se o produto já está presente na venda atual.
     const existing = sale.find(
         item => item.barcode === product.barcode
     );
 
+    // Se o produto já existe, incrementa sua quantidade.
     if (existing) {
 
+        // Impede que a quantidade da venda ultrapasse o estoque disponível.
         if (existing.quantity >= product.quantity) {
 
             alert("Quantidade disponível em estoque atingida.");
@@ -188,6 +228,7 @@ function addProduct(product) {
 
     } else {
 
+        // Impede adicionar produtos sem estoque disponível.
         if (product.quantity <= 0) {
 
             alert("Produto sem estoque.");
@@ -195,51 +236,66 @@ function addProduct(product) {
             return;
         }
 
+        // Registra o produto na lista temporária da venda.
         sale.push({
 
             barcode: product.barcode,
             name: product.name,
             price: product.price,
             quantity: 1,
+
+            // Guarda a quantidade disponível informada pelo servidor.
             stock: product.quantity
 
         });
     }
 
+    // Atualiza a lista de produtos e o valor total na tela.
     renderSale();
 }
 
 
+// Atualiza a exibição dos produtos e recalcula o total da venda.
 function renderSale() {
 
+    // Limpa a lista para reconstruí-la com os dados atuais.
     saleList.innerHTML = "";
 
+    // Inicia o cálculo do total em zero.
     let total = 0;
 
+    // Percorre todos os produtos incluídos na venda.
     sale.forEach(product => {
 
+        // Calcula o subtotal de cada produto.
         const subtotal =
             product.price * product.quantity;
 
+        // Soma o subtotal ao valor total da venda.
         total += subtotal;
 
+        // Cria um elemento HTML para exibir o produto.
         const item = document.createElement("li");
 
+        // Monta o texto com nome, quantidade, preço unitário e subtotal.
         item.textContent =
             `${product.name} - ` +
             `${product.quantity} x ` +
             `R$ ${product.price.toFixed(2)} = ` +
             `R$ ${subtotal.toFixed(2)}`;
 
+        // Adiciona o produto à lista visível na página.
         saleList.appendChild(item);
 
     });
 
+    // Exibe o total usando vírgula como separador decimal.
     totalElement.textContent =
         total.toFixed(2).replace(".", ",");
 }
 
 
+// Adiciona o produto quando o usuário clica no botão.
 addBarcodeButton.addEventListener(
     "click",
     () => {
@@ -250,14 +306,17 @@ addBarcodeButton.addEventListener(
 );
 
 
+// Permite adicionar um produto pressionando Enter no campo.
 barcodeInput.addEventListener(
     "keydown",
     event => {
 
         if (event.key === "Enter") {
 
+            // Impede o comportamento padrão de envio de formulário.
             event.preventDefault();
 
+            // Consulta o código digitado e tenta adicionar o produto.
             addBarcode(barcodeInput.value);
 
         }
@@ -266,13 +325,16 @@ barcodeInput.addEventListener(
 );
 
 
+// Associa o botão de finalização à função responsável pela venda.
 document
     .getElementById("finish-sale")
     .addEventListener("click", finishSale);
 
 
+// Envia os produtos selecionados ao servidor para finalizar a venda.
 function finishSale() {
 
+    // Impede finalizar uma venda sem produtos.
     if (sale.length === 0) {
 
         alert("Nenhum produto na venda.");
@@ -280,18 +342,22 @@ function finishSale() {
         return;
     }
 
+    // Envia os códigos e as quantidades para a rota de finalização.
     fetch("/mercado/finish-sale/", {
 
         method: "POST",
 
         headers: {
 
+            // Informa que o conteúdo enviado está no formato JSON.
             "Content-Type": "application/json",
 
+            // Envia o token CSRF exigido pela proteção do Django.
             "X-CSRFToken": getCookie("csrftoken")
 
         },
 
+        // Converte a lista de produtos em uma string JSON.
         body: JSON.stringify({
 
             products: sale.map(item => ({
@@ -305,10 +371,12 @@ function finishSale() {
 
     })
 
+    // Converte a resposta do servidor para um objeto JavaScript.
     .then(response => response.json())
 
     .then(data => {
 
+        // Exibe o erro retornado pelo servidor se a venda falhar.
         if (!data.success) {
 
             alert(
@@ -319,16 +387,20 @@ function finishSale() {
             return;
         }
 
+        // Informa que o servidor confirmou a finalização da venda.
         alert("Venda finalizada!");
 
+        // Limpa a lista local após a confirmação de sucesso.
         sale = [];
 
+        // Atualiza a tela para mostrar a venda vazia e o total zerado.
         renderSale();
 
     })
 
     .catch(error => {
 
+        // Registra erros de comunicação ou processamento.
         console.error(error);
 
         alert("Erro ao finalizar venda.");
@@ -337,20 +409,29 @@ function finishSale() {
 }
 
 
+// Procura um cookie pelo nome informado.
+// É utilizado para obter o token CSRF criado pelo Django.
 function getCookie(name) {
 
+    // Define o valor inicial caso o cookie não seja encontrado.
     let cookieValue = null;
 
+    // Verifica se existem cookies disponíveis no navegador.
     if (document.cookie && document.cookie !== "") {
 
+        // Divide a lista de cookies em entradas individuais.
         const cookies = document.cookie.split(";");
 
+        // Percorre os cookies disponíveis.
         for (let cookie of cookies) {
 
+            // Remove espaços em branco ao redor de cada entrada.
             cookie = cookie.trim();
 
+            // Verifica se a entrada corresponde ao cookie procurado.
             if (cookie.startsWith(name + "=")) {
 
+                // Extrai e decodifica o valor do cookie.
                 cookieValue = decodeURIComponent(
                     cookie.substring(name.length + 1)
                 );
@@ -360,23 +441,28 @@ function getCookie(name) {
         }
     }
 
+    // Retorna o valor encontrado ou null.
     return cookieValue;
 }
 
 
+// Inicia a câmera e configura a leitura contínua dos códigos de barras.
 scanner.start(
 
+    // Prioriza a câmera traseira do dispositivo.
     { facingMode: "environment" },
 
     {
-
+        // Define o número de tentativas de leitura por segundo.
         fps: 10,
 
+        // Define a área retangular utilizada para enquadrar o código.
         qrbox: {
             width: 320,
             height: 120
         },
 
+        // Solicita configurações de vídeo para a câmera.
         videoConstraints: {
             facingMode: "environment",
             focusMode: "continuous"
@@ -384,8 +470,10 @@ scanner.start(
 
     },
 
+    // Executa esta função quando um código é lido com sucesso.
     onScanSuccess,
 
+    // Ignora os erros comuns de tentativas de leitura sem sucesso.
     () => {}
 
 );

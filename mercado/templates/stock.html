@@ -1,22 +1,28 @@
+{# Define o template base que será reutilizado nesta página. #}
 {% extends "base.html" %}
 
+{# Define o título exibido na aba do navegador. #}
 {% block title %}Estoque{% endblock %}
 
+{# Define o título principal do cabeçalho. #}
 {% block header_title %}
 Estoque
 {% endblock %}
 
+{# Define o texto complementar do cabeçalho. #}
 {% block header_subtitle %}
 Cadastro e controle de produtos
 {% endblock %}
 
 {% block extra_css %}
 <style>
+    /* Mantém o scanner oculto até o usuário clicar no botão. */
     #scanner-container {
         display: none;
         margin-bottom: 16px;
     }
 
+    /* Define o tamanho e a aparência da área de leitura. */
     #reader {
         width: 100%;
         background: white;
@@ -24,27 +30,32 @@ Cadastro e controle de produtos
         overflow: hidden;
     }
 
+    /* Define a aparência do botão que inicia o scanner. */
     .scan-button {
         margin-top: 8px;
         background: #555;
     }
 
+    /* Define a aparência do botão que fecha o scanner. */
     .close-scanner {
         margin-top: 8px;
         background: #999;
     }
-    
+
+    /* Permite rolagem horizontal se a tabela for maior que a tela. */
     .table-container {
-    width: 100%;
-    overflow-x: auto;
+        width: 100%;
+        overflow-x: auto;
     }
 
+    /* Define o layout geral da tabela de estoque. */
     .stock-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
     }
 
+    /* Define espaçamento, alinhamento e linhas das células. */
     .stock-table th,
     .stock-table td {
         padding: 12px 8px;
@@ -53,6 +64,7 @@ Cadastro e controle de produtos
         border-bottom: 1px solid #ddd;
     }
 
+    /* Destaca o cabeçalho da tabela. */
     .stock-table th {
         background: #f5f5f5;
         font-weight: bold;
@@ -60,112 +72,86 @@ Cadastro e controle de produtos
         border-bottom: 2px solid #ccc;
     }
 
-    .stock-table td {
-        border-bottom: 1px solid #ddd;
-    }
-
+    /* Define a aparência do botão de exclusão. */
     .delete-button {
         font-size: 14px;
-        color:red;
-        background-color:transparent
+        color: red;
+        background-color: transparent;
     }
 
+    /* Evita que a coluna de ações fique desnecessariamente larga. */
     .actions-column {
         width: 1%;
         white-space: nowrap;
-</style>
-    
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 
+<!-- Seção para cadastrar um novo produto. -->
 <h2>Novo produto</h2>
 
 <form method="post">
     {% csrf_token %}
 
+    <!-- Identifica a operação que a view deve executar. -->
     <input type="hidden" name="action" value="add">
 
     <div class="form-group">
+        <!-- Campo para digitar ou escanear o código de barras. -->
         <label for="barcode">Código de barras</label>
+        <input type="text" id="barcode" name="barcode">
 
-        <input
-            type="text"
-            id="barcode"
-            name="barcode"
-        >
-
-        <button
-            type="button"
-            class="scan-button"
-            id="start-scanner"
-        >
+        <!-- Abre a câmera para ler o código de barras. -->
+        <button type="button" class="scan-button" id="start-scanner">
             Escanear código
         </button>
     </div>
 
+    <!-- Área que contém o scanner -->
     <div id="scanner-container">
-
         <div id="reader"></div>
 
-        <button
-            type="button"
-            class="close-scanner"
-            id="stop-scanner"
-        >
+        <button type="button" class="close-scanner" id="stop-scanner">
             Fechar scanner
         </button>
-
     </div>
 
+    <!-- Campo para o nome do produto. -->
     <div class="form-group">
         <label for="name">Nome do produto</label>
-
-        <input
-            type="text"
-            id="name"
-            name="name"
-        >
+        <input type="text" id="name" name="name">
     </div>
 
+    <!-- Campo para a quantidade disponível em estoque. -->
     <div class="form-group">
         <label for="quantity">Quantidade</label>
-
-        <input
-            type="number"
-            id="quantity"
-            name="quantity"
-        >
+        <input type="number" id="quantity" name="quantity">
     </div>
 
+    <!-- Campo para o preço unitário do produto. -->
     <div class="form-group">
         <label for="price">Preço</label>
-
-        <input
-            type="number"
-            id="price"
-            name="price"
-            step="0.01"
-        >
+        <input type="number" id="price" name="price" step="0.01">
     </div>
 
-    <button type="submit">
-        Cadastrar produto
-    </button>
-
+    <!-- Envia os dados para a view cadastrar o produto. -->
+    <button type="submit">Cadastrar produto</button>
 </form>
 
+<!-- Separa o formulário da listagem de produtos. -->
 <hr>
 
 <h2>Estoque atual</h2>
 
+<!-- Exibe a tabela somente se houver produtos cadastrados. -->
 {% if products %}
 
 <div class="table-container">
-
     <table class="stock-table">
 
+        <!-- Define os títulos das colunas. -->
         <thead>
             <tr>
                 <th>Código</th>
@@ -177,21 +163,27 @@ Cadastro e controle de produtos
         </thead>
 
         <tbody>
-
+            <!-- Percorre a lista de produtos enviada pela view Django. -->
             {% for product in products %}
-
             <tr>
                 <td>{{ product.barcode }}</td>
                 <td>{{ product.name }}</td>
                 <td>{{ product.quantity }}</td>
                 <td>R$ {{ product.price }}</td>
-                
+
+                <!-- Formulário independente para excluir este produto. -->
                 <td>
                     <form method="post">
                         {% csrf_token %}
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="barcode" value="{{ product.barcode }}">
 
+                        <!-- Informa à view que a operação é uma exclusão. -->
+                        <input type="hidden" name="action" value="delete">
+
+                        <!-- Identifica o produto pelo código de barras. -->
+                        <input type="hidden" name="barcode"
+                               value="{{ product.barcode }}">
+
+                        <!-- Solicita confirmação antes de enviar a exclusão. -->
                         <button
                             type="submit"
                             class="delete-button"
@@ -201,46 +193,37 @@ Cadastro e controle de produtos
                         </button>
                     </form>
                 </td>
-
             </tr>
-
             {% endfor %}
-
         </tbody>
-
     </table>
-
 </div>
 
+<!-- Mensagem exibida quando não existem produtos cadastrados. -->
 {% else %}
-
 <p>Nenhum produto cadastrado.</p>
-
 {% endif %}
 
 {% endblock %}
 
 {% block extra_js %}
 
+<!-- Carrega a biblioteca responsável pela leitura dos códigos de barras. -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
-
+// Obtém os elementos da página que serão utilizados pelo scanner.
 const barcodeInput = document.getElementById("barcode");
-
 const scannerContainer = document.getElementById("scanner-container");
-
 const startScannerButton = document.getElementById("start-scanner");
-
 const stopScannerButton = document.getElementById("stop-scanner");
 
+// Guarda a instância do scanner enquanto ele estiver ativo.
 let scanner = null;
 
-
+// Exibe a área de leitura e inicia a câmera traseira do dispositivo.
 function startScanner() {
-
     scannerContainer.style.display = "block";
-
     scanner = new Html5Qrcode("reader");
 
     scanner.start(
@@ -254,27 +237,30 @@ function startScanner() {
         },
         onScanSuccess,
         () => {
-            // Ignora tentativas de leitura sem sucesso
+            // Ignora tentativas de leitura sem sucesso.
         }
     );
 }
 
-
+// Executada quando um código de barras é identificado.
 function onScanSuccess(barcode) {
-
+    // Preenche o campo com o código lido.
     barcodeInput.value = barcode;
 
+    // Interrompe a câmera após uma leitura bem-sucedida.
     stopScanner();
 
+    // Consulta a API local do Django para buscar os dados do produto.
     fetch(`/mercado/lookup/${barcode}/`)
         .then(response => response.json())
         .then(data => {
-
             const nameInput = document.getElementById("name");
 
+            // Obtém o nome e a marca retornados pela API.
             const name = data.name || "";
             const brand = data.brand || "";
 
+            // Preenche o nome combinando o nome comercial e a marca.
             if (name && brand) {
                 nameInput.value = `${name} - ${brand}`;
             } else if (name) {
@@ -282,52 +268,36 @@ function onScanSuccess(barcode) {
             } else if (brand) {
                 nameInput.value = brand;
             }
-
         })
         .catch(error => {
-
+            // Registra erros ocorridos durante a consulta do produto.
             console.error("Erro ao consultar produto:", error);
-
         });
 }
 
-
+// Interrompe a câmera e oculta a área do scanner.
 function stopScanner() {
-
     if (scanner) {
-
         scanner.stop()
             .then(() => {
-
+                // Limpa os recursos da biblioteca após interromper a câmera.
                 scanner.clear();
-
                 scanner = null;
-
                 scannerContainer.style.display = "none";
-
             })
             .catch(() => {
-
+                // Oculta o scanner mesmo se ocorrer um erro ao interrompê-lo.
                 scanner = null;
-
                 scannerContainer.style.display = "none";
-
             });
     }
 }
 
+// Associa o botão de abertura à função que inicia a leitura.
+startScannerButton.addEventListener("click", startScanner);
 
-startScannerButton.addEventListener(
-    "click",
-    startScanner
-);
-
-
-stopScannerButton.addEventListener(
-    "click",
-    stopScanner
-);
-
+// Associa o botão de fechamento à função que interrompe a leitura.
+stopScannerButton.addEventListener("click", stopScanner);
 </script>
 
 {% endblock %}
