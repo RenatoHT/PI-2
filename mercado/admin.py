@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Product, Sale, SaleItems, ProductBatch
+from .models import Product, Sale, SaleItems, ProductBatch, CashMovement
 
 
 admin.site.register(Product)

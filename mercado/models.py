@@ -65,10 +65,10 @@ class CashMovement(models.Model):
     TYPE_CHOICES = [(IN, "Entrada"), (OUT, "Saída")]
 
     type = models.CharField(max_length=3, choices=TYPE_CHOICES)       
-    amout = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     sale = models.ForeignKey(Sale, null=True, on_delete=models.SET_NULL, related_name="cash_movements")
 
     def __str__(self):
-        return f"{self.get_type_display()} R${self.amout}"
+        return f"{self.get_type_display()} R${self.amount}"

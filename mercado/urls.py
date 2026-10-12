@@ -15,7 +15,7 @@ urlpatterns = [
     path("api/estoque/", api.stock_list, name="api_stock_list"),
     path("api/estoque/<str:barcode>/", api.stock_adjust, name="api_stock_adjust"),
     path("api/vendas/", api.sales, name="api_sales"),
-    path("api/vendas/<int:sale_id>/", api.sale_detail, name="api_sale_detail")
+    path("api/vendas/<int:sale_id>/", api.sale_detail, name="api_sale_detail"),
     path("api/caixa/movimentacoes/", api.cash_movements, name="api_cash_movements"),
     path("api/caixa/saldo/", api.cash_balance, name="api_cash_balance"),
     
