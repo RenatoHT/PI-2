@@ -7,6 +7,7 @@ class Product(models.Model):
     barcode = models.CharField(max_length=50, unique=True)
     quantity = models.PositiveIntegerField(default=0)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    min_quantity = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.name
@@ -55,3 +56,19 @@ class ProductBatch(models.Model):
 
     def __str__(self):
         return f"Lote {self.batch_number} - {self.product.name}"
+
+
+class CashMovement(models.Model):
+    """Movimentação de caixa, para registrar entradas e saídas de dinheiro."""
+    IN = "IN"
+    OUT = "OUT"
+    TYPE_CHOICES = [(IN, "Entrada"), (OUT, "Saída")]
+
+    type = models.CharField(max_length=3, choices=TYPE_CHOICES)       
+    amout = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    sale = models.ForeignKey(Sale, null=True, on_delete=models.SET_NULL, related_name="cash_movements")
+
+    def __str__(self):
+        return f"{self.get_type_display()} R${self.amout}"
