@@ -1,7 +1,9 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 import requests
-from .models import Product
+from .models import Product, ProductBatch
+from django.db.models import Sum
+from django.db import transaction
 import json
 
 #página de venda
@@ -59,6 +61,67 @@ def finish_sale(request):
 
 #Página de estoque
 def stock(request):
+    products = Product.objects.annotate(
+        total_quantity=Sum("batches__quantity")
+    ).order_by("name")
+
+    return render(
+        request,
+        "stock.html",
+        {"products": products}
+    )
+
+#Cadastro de produto e primeiro lote
+def product_create(request):
+    if request.method == "POST":
+        barcode = request.POST.get("barcode", "").strip()
+        name = request.POST.get("name", "").strip()
+        brand = request.POST.get("brand", "").strip()
+        price = request.POST.get("price")
+
+        batch_number = request.POST.get("batch_number", "").strip()
+        expiration_date = request.POST.get("expiration_date")
+        quantity = request.POST.get("quantity")
+        purchase_price = request.POST.get("purchase_price")
+
+        try:
+            with transaction.atomic():
+                product = Product.objects.create(
+                    barcode=barcode,
+                    name=name,
+                    brand=brand,
+                    price=price,
+                )
+
+                ProductBatch.objects.create(
+                    product=product,
+                    batch_number=batch_number,
+                    expiration_date=expiration_date,
+                    quantity=quantity,
+                    purchase_price=purchase_price,
+                )
+
+            return render(
+                request,
+                "product_form.html",
+                {"success": "Produto cadastrado com sucesso."}
+            )
+
+        except Exception as e:
+            return render(
+                request,
+                "product_form.html",
+                {
+                    "error": "Não foi possível cadastrar o produto. "
+                             "Verifique os dados informados."
+                }
+            )
+
+    return render(request, "product_form.html")
+
+
+"""depreciado
+def stock(request):
     if request.method == "POST":
         action = request.POST.get("action")
 
@@ -101,6 +164,8 @@ def stock(request):
         "stock.html",
         {"products": products}
     )
+"""
+
 
 #Consulta API Open Food Facts
 def lookup_product(request, barcode):

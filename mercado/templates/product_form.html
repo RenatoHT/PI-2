@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastrar Produto{% endblock %}
+
+{% block header_title %}Cadastro de Produto{% endblock %}
+{% block header_subtitle %}Cadastre o produto e seu primeiro lote{% endblock %}
+
+{% block content %}
+
+<h2>Dados do produto</h2>
+
+{% if success %}
+    <p>{{ success }}</p>
+{% endif %}
+
+{% if error %}
+    <p>{{ error }}</p>
+{% endif %}
+
+<form method="POST">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="name">Nome do produto</label>
+        <input type="text" id="name" name="name" required>
+    </div>
+
+    <div class="form-group">
+        <label for="brand">Marca</label>
+        <input type="text" id="brand" name="brand">
+    </div>
+
+    <div class="form-group">
+        <label for="barcode">Código de barras</label>
+
+        <input
+            type="text"
+            id="barcode"
+            name="barcode"
+            placeholder="Digite ou leia o código"
+            required
+        >
+
+        <button
+            type="button"
+            id="start-scanner"
+            style="margin-top: 8px;"
+        >
+            Ler código pela câmera
+        </button>
+    </div>
+
+    <div id="reader" style="display: none; margin-bottom: 16px;"></div>
+
+    <button
+        type="button"
+        id="stop-scanner"
+        style="display: none; margin-bottom: 16px;"
+    >
+        Fechar câmera
+    </button>
+
+    <div class="form-group">
+        <label for="price">Preço de venda (R$)</label>
+        <input type="number" id="price" name="price"
+               min="0" step="0.01" required>
+    </div>
+
+    <h2>Dados do primeiro lote</h2>
+
+    <div class="form-group">
+        <label for="batch_number">Número do lote</label>
+        <input type="text" id="batch_number" name="batch_number" >
+    </div>
+
+    <div class="form-group">
+        <label for="expiration_date">Data de validade</label>
+        <input type="date" id="expiration_date"
+               name="expiration_date" >
+    </div>
+
+    <div class="form-group">
+        <label for="quantity">Quantidade recebida</label>
+        <input type="number" id="quantity" name="quantity"
+               min="0" step="1" required>
+    </div>
+
+    <div class="form-group">
+        <label for="purchase_price">Preço de compra por unidade (R$)</label>
+        <input type="number" id="purchase_price" name="purchase_price"
+               min="0" step="0.01" required>
+    </div>
+
+    <button type="submit">Cadastrar produto</button>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<script>
+    const barcodeInput = document.getElementById("barcode");
+    const reader = document.getElementById("reader");
+    const startButton = document.getElementById("start-scanner");
+    const stopButton = document.getElementById("stop-scanner");
+
+    let scanner = null;
+    let scannerRunning = false;
+    let lastBarcode = null;
+
+    async function stopScanner() {
+        if (scanner) {
+            try {
+                if (scanner.isScanning) {
+                    await scanner.stop();
+                }
+            } catch (error) {
+                console.error("Erro ao parar o scanner:", error);
+            }
+        }
+
+        scannerRunning = false;
+        reader.style.display = "none";
+        stopButton.style.display = "none";
+        startButton.disabled = false;
+    }
+
+
+
+    // Abre a câmera e inicia a leitura.
+    startButton.addEventListener("click", async () => {
+        if (scannerRunning) {
+            return;
+        }
+
+        reader.style.display = "block";
+        stopButton.style.display = "block";
+        startButton.disabled = true;
+
+        scanner = new Html5Qrcode("reader");
+
+        try {
+            await scanner.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: {
+                        width: 300,
+                        height: 120
+                    }
+                },
+                (decodedText) => {
+                    // Evita processar várias vezes a mesma leitura.
+                    if (decodedText === lastBarcode) {
+                        return;
+                    }
+
+                    lastBarcode = decodedText;
+
+                    // Preenche o campo com o código lido.
+                    barcodeInput.value = decodedText;
+
+                    // Interrompe a câmera após uma leitura bem-sucedida.
+                    stopScanner();
+
+                    // Consulta a API local para buscar nome e marca.
+                    fetch(`/mercado/lookup/${encodeURIComponent(decodedText)}/`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error("Falha ao consultar o produto.");
+                            }
+
+                            return response.json();
+                        })
+                        .then(data => {
+                            const nameInput = document.getElementById("name");
+                            const brandInput = document.getElementById("brand");
+
+                            // Preenche os campos somente quando a API retornar dados.
+                            if (data.name) {
+                                nameInput.value = data.name;
+                            }
+
+                            if (data.brand) {
+                                brandInput.value = data.brand;
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Erro ao consultar produto:", error);
+                        });
+                },
+                () => {
+                    // Ignora tentativas em que nenhum código foi identificado.
+                }
+            );
+
+            scannerRunning = true;
+
+        } catch (error) {
+            console.error("Erro ao iniciar a câmera:", error);
+
+            alert(
+                "Não foi possível abrir a câmera. " +
+                "Verifique a permissão de acesso e tente novamente."
+            );
+
+            reader.style.display = "none";
+            stopButton.style.display = "none";
+            startButton.disabled = false;
+            scanner = null;
+        }
+    });
+
+    // Fecha a câmera manualmente.
+    stopButton.addEventListener("click", async () => {
+        await stopScanner();
+        scanner = null;
+        lastBarcode = null;
+    });
+</script>
+
+{% endblock %}
