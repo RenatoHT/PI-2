@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import Sum, Q
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import Product, Sale, SaleItems, CashMovement
 
@@ -39,6 +40,7 @@ def parse_decimal(value):
 
 # ---------------- produtos ------------------------------
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def products(request):
     if request.method == "GET":
@@ -92,6 +94,7 @@ def stock_list(request):
     return JsonResponse({"products": items, "low_stock": low})
 
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def stock_adjust(request, barcode):
     """Ajuste manual de estoque: {"delta": 5} repoe ou {"delta": -3} tira
@@ -121,6 +124,7 @@ def stock_adjust(request, barcode):
 
 # ---------------- vendas ----------------------------------
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def sales(request):
     if request.method == "GET":
@@ -218,6 +222,7 @@ def sale_detail(request, sale_id):
 
 # ---------------- caixa ----------------------------------
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def cash_movements(request):
     if request.method == "GET":
