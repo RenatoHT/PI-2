@@ -75,8 +75,15 @@
 
     <div class="form-group">
         <label for="expiration_date">Data de validade</label>
-        <input type="date" id="expiration_date"
-               name="expiration_date" >
+        <input
+            type="text"
+            id="expiration_date"
+            name="expiration_date"
+            placeholder="dd/mm/aaaa"
+            maxlength="10"
+            inputmode="numeric"
+            autocomplete="off"
+        >
     </div>
 
     <div class="form-group">
@@ -219,6 +226,75 @@
         scanner = null;
         lastBarcode = null;
     });
+</script>
+
+<script>
+    const campoData = document.getElementById("expiration_date");
+
+    campoData.addEventListener("input", function (event) {
+        let numeros = event.target.value.replace(/\D/g, "");
+        numeros = numeros.substring(0, 8);
+
+        if (numeros.length > 4) {
+            event.target.value =
+                numeros.substring(0, 2) + "/" +
+                numeros.substring(2, 4) + "/" +
+                numeros.substring(4);
+        } else if (numeros.length > 2) {
+            event.target.value =
+                numeros.substring(0, 2) + "/" +
+                numeros.substring(2);
+        } else {
+            event.target.value = numeros;
+        }
+    });
+
+    function dataValida(valor) {
+        const partes = valor.split("/");
+
+        if (partes.length !== 3) {
+            return false;
+        }
+
+        const dia = Number(partes[0]);
+        const mes = Number(partes[1]);
+        const ano = Number(partes[2]);
+
+        if (
+            partes[0].length !== 2 ||
+            partes[1].length !== 2 ||
+            partes[2].length !== 4
+        ) {
+            return false;
+        }
+
+        if (ano < 1 || mes < 1 || mes > 12 || dia < 1) {
+            return false;
+        }
+
+        const ultimoDia = new Date(ano, mes, 0).getDate();
+
+        return dia <= ultimoDia;
+    }
+
+    campoData.addEventListener("blur", function () {
+        const valor = campoData.value.trim();
+
+        if (valor !== "" && !dataValida(valor)) {
+            alert("Data inválida! Digite uma data válida no formato DD/MM/AAAA.");
+        }
+    });
+
+    campoData.form.addEventListener("submit", function (event) {
+        const valor = campoData.value.trim();
+
+        if (valor !== "" && !dataValida(valor)) {
+            event.preventDefault();
+
+            alert("Data inválida! Digite uma data válida no formato DD/MM/AAAA.");
+        }
+    });
+    
 </script>
 
 {% endblock %}

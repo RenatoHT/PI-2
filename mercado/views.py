@@ -1,10 +1,12 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 import requests
 from .models import Product, ProductBatch
-from django.db.models import Sum
+from django.db.models import Sum, Value
+from django.db.models.functions import Coalesce
 from django.db import transaction
 import json
+from datetime import datetime
 
 #página de venda
 def scan(request):
@@ -59,10 +61,13 @@ def finish_sale(request):
         "success": True
     })
 
-#Página de estoque
+# Página de estoque
 def stock(request):
     products = Product.objects.annotate(
-        total_quantity=Sum("batches__quantity")
+        total_quantity=Coalesce(
+            Sum("batches__quantity"),
+            Value(0)
+        )
     ).order_by("name")
 
     return render(
@@ -80,7 +85,25 @@ def product_create(request):
         price = request.POST.get("price")
 
         batch_number = request.POST.get("batch_number", "").strip()
-        expiration_date = request.POST.get("expiration_date")
+        
+        expiration_date_text = request.POST.get("expiration_date", "").strip()
+        if expiration_date_text:
+            try:
+                expiration_date = datetime.strptime(
+                    expiration_date_text, "%d/%m/%Y"
+                ).date()
+            except ValueError:
+                return render(
+                    request,
+                    "product_form.html",
+                    {
+                        "error": "Data de validade inválida. "
+                                "Digite uma data válida no formato DD/MM/AAAA."
+                    }
+                )
+        else:
+            expiration_date = None
+
         quantity = request.POST.get("quantity")
         purchase_price = request.POST.get("purchase_price")
 
@@ -119,53 +142,129 @@ def product_create(request):
 
     return render(request, "product_form.html")
 
+#Altera produto já cadastrado
+def product_edit(request, barcode):
+    product = get_object_or_404(Product, barcode=barcode)
 
-"""depreciado
-def stock(request):
     if request.method == "POST":
-        action = request.POST.get("action")
+        action = request.POST.get("action", "save")
 
-        if action == "delete":
-            barcode = request.POST.get("barcode")
+        try:
+            with transaction.atomic():
+                if action == "add_batch":
+                    batch_number = request.POST.get(
+                        "new_batch_number", ""
+                    ).strip()
 
-            product = get_object_or_404(
-                Product,
-                barcode=barcode
+                    expiration_date_text = request.POST.get(
+                        "new_expiration_date", ""
+                    ).strip()
+
+                    quantity = request.POST.get(
+                        "new_quantity", ""
+                    ).strip()
+
+                    purchase_price = request.POST.get(
+                        "new_purchase_price", ""
+                    ).strip()
+
+                    if expiration_date_text:
+                        expiration_date = datetime.strptime(
+                            expiration_date_text, "%d/%m/%Y"
+                        ).date()
+                    else:
+                        expiration_date = None
+
+                    ProductBatch.objects.create(
+                        product=product,
+                        batch_number=batch_number,
+                        expiration_date=expiration_date,
+                        quantity=quantity,
+                        purchase_price=purchase_price,
+                    )
+
+                elif action == "save":
+                    product.name = request.POST.get(
+                        "name", ""
+                    ).strip()
+
+                    product.brand = request.POST.get(
+                        "brand", ""
+                    ).strip()
+
+                    product.price = request.POST.get("price", "").strip()
+                    product.save()
+
+                    batches = product.batches.all()
+
+                    for batch in batches:
+                        batch_number = request.POST.get(
+                            f"batch_number_{batch.id}", ""
+                        ).strip()
+
+                        expiration_date_text = request.POST.get(
+                            f"expiration_date_{batch.id}", ""
+                        ).strip()
+
+                        quantity = request.POST.get(
+                            f"quantity_{batch.id}", ""
+                        ).strip()
+
+                        purchase_price = request.POST.get(
+                            f"purchase_price_{batch.id}", ""
+                        ).strip()
+
+                        if expiration_date_text:
+                            expiration_date = datetime.strptime(
+                                expiration_date_text, "%d/%m/%Y"
+                            ).date()
+                        else:
+                            expiration_date = None
+
+                        batch.batch_number = batch_number
+                        batch.expiration_date = expiration_date
+                        batch.quantity = quantity
+                        batch.purchase_price = purchase_price
+                        batch.save()
+
+                else:
+                    return render(
+                        request,
+                        "product_edit.html",
+                        {
+                            "product": product,
+                            "batches": product.batches.all(),
+                            "error": "Operação inválida.",
+                        },
+                    )
+
+            return redirect(
+                "product_edit",
+                barcode=product.barcode,
             )
 
-            product.delete()
-
-        elif action == "add":
-            barcode = request.POST.get("barcode")
-            name = request.POST.get("name")
-            quantity = int(request.POST.get("quantity") or 0)
-            price = request.POST.get("price")
-
-            product = Product.objects.filter(
-                barcode=barcode
-            ).first()
-
-            if product:
-                product.quantity += quantity
-                product.price = price
-                product.save()
-            else:
-                Product.objects.create(
-                    barcode=barcode,
-                    name=name,
-                    quantity=quantity,
-                    price=price,
-                )
-
-    products = Product.objects.all().order_by("name")
+        except (ValueError, TypeError):
+            return render(
+                request,
+                "product_edit.html",
+                {
+                    "product": product,
+                    "batches": product.batches.all(),
+                    "error": (
+                        "Não foi possível salvar. Confira os campos "
+                        "e utilize DD/MM/AAAA nas datas de validade."
+                    ),
+                },
+            )
 
     return render(
         request,
-        "stock.html",
-        {"products": products}
+        "product_edit.html",
+        {
+            "product": product,
+            "batches": product.batches.all().order_by("id"),
+        },
     )
-"""
-
 
 #Consulta API Open Food Facts
 def lookup_product(request, barcode):

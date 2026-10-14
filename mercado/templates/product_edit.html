@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Produto{% endblock %}
+
+{% block header_title %}Editar Produto{% endblock %}
+{% block header_subtitle %}Atualize os dados do produto e seus lotes{% endblock %}
+
+{% block content %}
+
+{% if error %}
+    <p>{{ error }}</p>
+{% endif %}
+
+<form method="POST">
+    {% csrf_token %}
+
+    <h2>Dados do produto</h2>
+
+    <div class="form-group">
+        <label for="name">Nome do produto</label>
+        <input
+            type="text"
+            id="name"
+            name="name"
+            value="{{ product.name }}"
+            required
+        >
+    </div>
+
+    <div class="form-group">
+        <label for="brand">Marca</label>
+        <input
+            type="text"
+            id="brand"
+            name="brand"
+            value="{{ product.brand }}"
+        >
+    </div>
+
+    <div class="form-group">
+        <label for="barcode">Código de barras</label>
+        <input
+            type="text"
+            id="barcode"
+            value="{{ product.barcode }}"
+            readonly
+        >
+        <small>O código de barras não pode ser alterado.</small>
+    </div>
+
+    <div class="form-group">
+        <label for="price">Preço de venda (R$)</label>
+        <input
+            type="number"
+            id="price"
+            name="price"
+            min="0"
+            step="0.01"
+            value="{{ product.price }}"
+            required
+        >
+    </div>
+
+    <hr>
+
+    <h2>Lotes cadastrados</h2>
+
+    {% for batch in batches %}
+        <fieldset style="margin-bottom: 20px; padding: 15px;">
+            <legend>Lote {{ forloop.counter }}</legend>
+
+            <div class="form-group">
+                <label for="batch_number_{{ batch.id }}">
+                    Número do lote
+                </label>
+                <input
+                    type="text"
+                    id="batch_number_{{ batch.id }}"
+                    name="batch_number_{{ batch.id }}"
+                    value="{{ batch.batch_number }}"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="expiration_date_{{ batch.id }}">
+                    Data de validade (DD/MM/AAAA)
+                </label>
+                <input
+                    type="text"
+                    id="expiration_date_{{ batch.id }}"
+                    name="expiration_date_{{ batch.id }}"
+                    value="{% if batch.expiration_date %}{{ batch.expiration_date|date:'d/m/Y' }}{% endif %}"
+                    placeholder="dd/mm/aaaa"
+                    maxlength="10"
+                    inputmode="numeric"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="quantity_{{ batch.id }}">Quantidade</label>
+                <input
+                    type="number"
+                    id="quantity_{{ batch.id }}"
+                    name="quantity_{{ batch.id }}"
+                    min="0"
+                    step="1"
+                    value="{{ batch.quantity }}"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="purchase_price_{{ batch.id }}">
+                    Preço de compra por unidade (R$)
+                </label>
+                <input
+                    type="number"
+                    id="purchase_price_{{ batch.id }}"
+                    name="purchase_price_{{ batch.id }}"
+                    min="0"
+                    step="0.01"
+                    value="{{ batch.purchase_price }}"
+                    required
+                >
+            </div>
+        </fieldset>
+    {% empty %}
+        <p>Este produto ainda não possui lotes cadastrados.</p>
+    {% endfor %}
+    
+
+    <hr>
+
+    <h2>Adicionar novo lote</h2>
+
+    <div class="form-group">
+        <label for="new_batch_number">Número do lote</label>
+        <input
+            type="text"
+            id="new_batch_number"
+            name="new_batch_number"
+        >
+    </div>
+
+    <div class="form-group">
+        <label for="new_expiration_date">
+            Data de validade (DD/MM/AAAA)
+        </label>
+        <input
+            type="text"
+            id="new_expiration_date"
+            name="new_expiration_date"
+            placeholder="dd/mm/aaaa"
+            maxlength="10"
+            inputmode="numeric"
+        >
+    </div>
+
+    <div class="form-group">
+        <label for="new_quantity">Quantidade recebida</label>
+        <input
+            type="number"
+            id="new_quantity"
+            name="new_quantity"
+            min="0"
+            step="1"
+        >
+    </div>
+
+    <div class="form-group">
+        <label for="new_purchase_price">
+            Preço de compra por unidade (R$)
+        </label>
+        <input
+            type="number"
+            id="new_purchase_price"
+            name="new_purchase_price"
+            min="0"
+            step="0.01"
+        >
+    </div>
+
+    <button type="submit" name="action" value="add_batch">
+        Adicionar lote
+    </button>
+
+    <button type="submit" name="action" value="save">
+        Salvar alterações
+    </button>
+
+</form>
+
+<hr>
+
+<a href="{% url 'estoque' %}">Voltar ao estoque</a>
+
+<script>
+    const campoData = document.getElementById("new_expiration_date");
+
+    campoData.addEventListener("input", function (event) {
+        let numeros = event.target.value.replace(/\D/g, "");
+        numeros = numeros.substring(0, 8);
+
+        if (numeros.length > 4) {
+            event.target.value =
+                numeros.substring(0, 2) + "/" +
+                numeros.substring(2, 4) + "/" +
+                numeros.substring(4);
+        } else if (numeros.length > 2) {
+            event.target.value =
+                numeros.substring(0, 2) + "/" +
+                numeros.substring(2);
+        } else {
+            event.target.value = numeros;
+        }
+    });
+
+    function dataValida(valor) {
+        const partes = valor.split("/");
+
+        if (partes.length !== 3) {
+            return false;
+        }
+
+        const dia = Number(partes[0]);
+        const mes = Number(partes[1]);
+        const ano = Number(partes[2]);
+
+        if (
+            partes[0].length !== 2 ||
+            partes[1].length !== 2 ||
+            partes[2].length !== 4
+        ) {
+            return false;
+        }
+
+        if (ano < 1 || mes < 1 || mes > 12 || dia < 1) {
+            return false;
+        }
+
+        const ultimoDia = new Date(ano, mes, 0).getDate();
+
+        return dia <= ultimoDia;
+    }
+
+    campoData.addEventListener("blur", function () {
+        const valor = campoData.value.trim();
+
+        if (valor !== "" && !dataValida(valor)) {
+            alert("Data inválida! Digite uma data válida no formato DD/MM/AAAA.");
+        }
+    });
+
+    campoData.form.addEventListener("submit", function (event) {
+        const valor = campoData.value.trim();
+
+        if (valor !== "" && !dataValida(valor)) {
+            event.preventDefault();
+
+            alert("Data inválida! Digite uma data válida no formato DD/MM/AAAA.");
+        }
+    });
+
+
+    
+</script>
+
+{% endblock %}
