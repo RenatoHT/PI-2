@@ -16,51 +16,173 @@ Escaneie os produtos
 
 <!-- Adiciona os estilos CSS específicos da tela de vendas. -->
 {% block extra_css %}
-
 <style>
-    /* Define a aparência dos itens adicionados à venda. */
-    #sale-list li {
-        background: white;
-        margin-bottom: 8px;
-        padding: 12px;
+    /* Espaçamento geral */
+
+    #reader {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto 16px;
+        overflow: hidden;
         border-radius: 8px;
     }
 
-    /* Organiza o campo de código de barras e o botão lado a lado. */
+    /* Campo de código de barras */
+
     .manual-code {
         display: flex;
+        align-items: stretch;
         gap: 8px;
-        margin-bottom: 20px;
-        align-items: center;
+        margin-bottom: 16px;
     }
 
-    /* Ajusta o campo de código de barras para ocupar o espaço disponível. */
     .manual-code input {
-        width: auto;
-        flex: 1;
         min-width: 0;
-        min-height: 44px;
-        padding: 10px;
-        font-size: 16px;
+        min-height: 42px;
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 15px;
+        box-sizing: border-box;
     }
 
-    /* Ajusta o tamanho do botão de adicionar código. */
+    #quantity-input {
+        flex: 0 0 68px;
+        width: 68px;
+        text-align: center;
+    }
+
+    #barcode-input {
+        flex: 1;
+        width: 0;
+    }
+
+    .manual-code input:focus {
+        outline: none;
+        border-color: #198754;
+        box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.12);
+    }
+
     .manual-code button {
         width: auto;
         min-width: 90px;
-        min-height: 44px;
+        min-height: 42px;
         padding: 8px 12px;
-        font-size: 14px;
+        border: none;
+        border-radius: 6px;
+        background: #198754;
+        color: #fff;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: bold;
+        cursor: pointer;
     }
 
-    /* Destaca o valor total da venda. */
+    .manual-code button:hover {
+        background: #146c43;
+    }
+
+    /* Títulos e separadores */
+
+    #content h2 {
+        margin: 0 0 12px;
+        font-size: 19px;
+    }
+
+    #content hr {
+        margin: 18px 0;
+        border: 0;
+        border-top: 1px solid #ddd;
+    }
+
+    /* Lista de produtos */
+
+    #sale-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    #sale-list li {
+        margin: 0;
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 7px;
+        background: #fff;
+        font-size: 13px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    /* Total da venda */
+
     .total {
-        margin-top: 20px;
-        font-size: 24px;
+        margin-top: 18px;
+        padding: 14px;
+        border-radius: 7px;
+        background: #f5f5f5;
+        font-size: 22px;
         font-weight: bold;
+        text-align: right;
+    }
+
+    /* Botão de finalizar */
+
+    #finish-sale {
+        width: 100%;
+        min-height: 46px;
+        margin-top: 12px;
+        padding: 12px 16px;
+        border: none;
+        border-radius: 6px;
+        background: #198754;
+        color: #fff;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    #finish-sale:hover {
+        background: #146c43;
+    }
+
+    #finish-sale:active,
+    .manual-code button:active {
+        transform: scale(0.99);
+    }
+
+    /* Ajustes para celulares */
+
+    @media (max-width: 600px) {
+        #content h2 {
+            font-size: 18px;
+        }
+
+        .manual-code {
+            gap: 6px;
+        }
+
+        .manual-code button {
+            min-width: 82px;
+            padding: 8px;
+            font-size: 12px;
+        }
+
+        #sale-list li {
+            padding: 10px;
+        }
+
+        .total {
+            padding: 12px;
+            font-size: 21px;
+        }
     }
 </style>
-
 {% endblock %}
 
 
@@ -71,21 +193,30 @@ Escaneie os produtos
 
 <!-- Campo para digitar o código de barras manualmente. -->
 <div class="manual-code">
+    <input
+        type="number"
+        id="quantity-input"
+        value="1"
+        min="1"
+        step="1"
+        inputmode="numeric"
+        aria-label="Quantidade"
+        title="Quantidade"
+    >
 
     <input
         type="text"
         id="barcode-input"
-        placeholder="Digite o código de barras"
+        placeholder="Código de barras"
+        aria-label="Código de barras"
     >
 
-    <!-- Adiciona à venda o produto correspondente ao código informado. -->
     <button
         type="button"
         id="add-barcode"
     >
         Adicionar
     </button>
-
 </div>
 
 <!-- Área utilizada pela biblioteca para exibir a câmera e ler códigos. -->
@@ -131,6 +262,7 @@ const totalElement = document.getElementById("total");
 
 // Obtém o campo de código de barras e o botão de adicionar.
 const barcodeInput = document.getElementById("barcode-input");
+const quantityInput = document.getElementById("quantity-input");
 const addBarcodeButton = document.getElementById("add-barcode");
 
 // Armazena temporariamente os produtos incluídos na venda.
@@ -141,44 +273,47 @@ let lastBarcode = null;
 
 // Consulta o produto pelo código de barras e tenta adicioná-lo à venda.
 function addBarcode(barcode) {
-
-    // Remove espaços em branco no início e no final do código.
     barcode = barcode.trim();
 
-    // Não realiza a consulta se o campo estiver vazio.
     if (!barcode) {
         return;
     }
 
-    // Consulta a rota Django que procura o produto no banco de dados.
-    fetch(`/mercado/product/${barcode}/`)
-        .then(response => response.json())
+    const requestedQuantity = Number(quantityInput.value);
+
+    if (
+        !Number.isSafeInteger(requestedQuantity) ||
+        requestedQuantity < 1
+    ) {
+        alert("Informe uma quantidade inteira maior que zero.");
+        quantityInput.focus();
+        return;
+    }
+
+    fetch(`/mercado/product/${encodeURIComponent(barcode)}/`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Falha ao consultar o produto.");
+            }
+
+            return response.json();
+        })
         .then(data => {
-
-            // Informa ao usuário quando o produto não foi encontrado.
             if (!data.found) {
-
                 alert("Produto não encontrado.");
-
+                barcodeInput.focus();
                 return;
             }
 
-            // Adiciona o produto à venda ou incrementa sua quantidade.
-            addProduct(data);
+            addProduct(data, requestedQuantity);
 
-            // Limpa o campo e devolve o foco para facilitar a próxima leitura.
+            quantityInput.value = "1";
             barcodeInput.value = "";
             barcodeInput.focus();
-
         })
         .catch(error => {
-
-            // Registra no console um eventual erro na consulta.
             console.error(error);
-
-            // Informa que ocorreu um erro ao consultar o produto.
             alert("Erro ao consultar produto.");
-
         });
 }
 
@@ -205,51 +340,39 @@ function onScanSuccess(barcode) {
 
 
 // Adiciona um produto à venda ou aumenta sua quantidade.
-function addProduct(product) {
-
-    // Verifica se o produto já está presente na venda atual.
+function addProduct(product, requestedQuantity = 1) {
     const existing = sale.find(
         item => item.barcode === product.barcode
     );
 
-    // Se o produto já existe, incrementa sua quantidade.
+    const availableStock = Number(product.quantity);
+    const currentQuantity = existing ? existing.quantity : 0;
+    const newQuantity = currentQuantity + requestedQuantity;
+
+    if (availableStock <= 0) {
+        alert("Produto sem estoque.");
+        return;
+    }
+
+    if (newQuantity > availableStock) {
+        alert(
+            `Estoque insuficiente. Disponível: ${availableStock} unidade(s).`
+        );
+        return;
+    }
+
     if (existing) {
-
-        // Impede que a quantidade da venda ultrapasse o estoque disponível.
-        if (existing.quantity >= product.quantity) {
-
-            alert("Quantidade disponível em estoque atingida.");
-
-            return;
-        }
-
-        existing.quantity += 1;
-
+        existing.quantity = newQuantity;
     } else {
-
-        // Impede adicionar produtos sem estoque disponível.
-        if (product.quantity <= 0) {
-
-            alert("Produto sem estoque.");
-
-            return;
-        }
-
-        // Registra o produto na lista temporária da venda.
         sale.push({
-
             barcode: product.barcode,
             name: product.name,
-            price: product.price,
-            quantity: 1,
-
-            // Guarda a quantidade disponível informada pelo servidor.
-            stock: product.quantity
-
+            price: Number(product.price),
+            quantity: requestedQuantity,
+            stock: availableStock
         });
     }
 
-    // Atualiza a lista de produtos e o valor total na tela.
     renderSale();
 }
 

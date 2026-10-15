@@ -10,13 +10,15 @@ Consulta e gerenciamento de produtos
 
 {% block extra_css %}
 <style>
+    /* Ações do estoque */
+
     .stock-actions {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
         flex-wrap: wrap;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
 
     .stock-actions h2 {
@@ -24,33 +26,41 @@ Consulta e gerenciamento de produtos
     }
 
     .add-product-button {
-        display: inline-block;
-        padding: 10px 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 8px 12px;
         background: #198754;
-        color: white;
+        color: #fff;
         text-decoration: none;
         border-radius: 6px;
+        font-size: 13px;
         font-weight: bold;
+        white-space: nowrap;
     }
 
     .add-product-button:hover {
         background: #146c43;
     }
 
+    /* Tabela */
+
     .table-container {
         width: 100%;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .stock-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 14px;
+        font-size: 13px;
     }
 
     .stock-table th,
     .stock-table td {
-        padding: 12px 10px;
+        padding: 10px 8px;
         text-align: left;
         vertical-align: middle;
         border-bottom: 1px solid #ddd;
@@ -58,6 +68,7 @@ Consulta e gerenciamento de produtos
 
     .stock-table th {
         background: #f5f5f5;
+        font-size: 12px;
         font-weight: bold;
     }
 
@@ -65,40 +76,110 @@ Consulta e gerenciamento de produtos
         background: #f9f9f9;
     }
 
-    .edit-button {
-        display: inline-block;
-        padding: 7px 12px;
-        background: #0d6efd;
-        color: white;
-        text-decoration: none;
+    /* Botões de ação */
+
+    .action-buttons {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .edit-button,
+    .delete-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 6px 9px;
+        border: none;
         border-radius: 5px;
+        color: #fff;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 1.2;
+        text-decoration: none;
         white-space: nowrap;
+        cursor: pointer;
+    }
+
+    .edit-button {
+        background: #0d6efd;
     }
 
     .edit-button:hover {
         background: #0b5ed7;
     }
 
-    .empty-stock {
-        padding: 20px;
-        background: #f5f5f5;
-        border-radius: 6px;
+    .delete-form {
+        display: inline-flex;
+        margin: 0;
     }
 
+    .delete-button {
+        width: auto;
+        background: #dc3545;
+    }
+
+    .delete-button:hover {
+        background: #bb2d3b;
+    }
+
+    /* Estoque vazio */
+
+    .empty-stock {
+        padding: 16px;
+        background: #f5f5f5;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    /* Ajustes para celular */
+
     @media (max-width: 600px) {
+        .stock-actions {
+            align-items: stretch;
+        }
+
+        .stock-actions h2 {
+            font-size: 19px;
+        }
+
         .stock-table {
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .stock-table th,
         .stock-table td {
-            padding: 9px 7px;
+            padding: 9px 6px;
+        }
+
+        .stock-table th {
+            font-size: 11px;
+        }
+
+        .edit-button,
+        .delete-button {
+            min-height: 34px;
+            padding: 6px 8px;
+            font-size: 12px;
+        }
+
+        .action-buttons {
+            gap: 5px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
+
+{% if error %}
+<script>
+    alert("{{ error|escapejs }}");
+</script>
+{% endif %}
+
 
 <div class="stock-actions">
     <h2>Produtos cadastrados</h2>
@@ -141,12 +222,27 @@ Consulta e gerenciamento de produtos
                 <td>R$ {{ product.price|floatformat:2 }}</td>
                 <td>{{ product.total_quantity }}</td>
                 <td>
-                    <a
-                        href="{% url 'product_edit' barcode=product.barcode %}"
-                        class="edit-button"
-                    >
-                        Editar
-                    </a>
+                    <div class="action-buttons">
+                        <a
+                            href="{% url 'product_edit' barcode=product.barcode %}"
+                            class="edit-button"
+                        >
+                            Editar
+                        </a>
+
+                        <form
+                            method="POST"
+                            action="{% url 'product_delete' barcode=product.barcode %}"
+                            class="delete-form"
+                            onsubmit="return confirm('Tem certeza de que deseja excluir o produto {{ product.name|escapejs }}?');"
+                        >
+                            {% csrf_token %}
+
+                            <button type="submit" class="delete-button">
+                                Excluir
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}

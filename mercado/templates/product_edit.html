@@ -3,217 +3,600 @@
 {% block title %}Editar Produto{% endblock %}
 
 {% block header_title %}Editar Produto{% endblock %}
-{% block header_subtitle %}Atualize os dados do produto e seus lotes{% endblock %}
+{% block header_subtitle %}Atualize o produto e gerencie seus lotes{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estrutura */
+
+    .edit-section {
+        margin-bottom: 28px;
+    }
+
+    .section-title {
+        margin: 0 0 14px;
+        font-size: 18px;
+    }
+
+    .section-description {
+        margin: -6px 0 14px;
+        color: #666;
+        font-size: 13px;
+    }
+
+    /* Mensagem de erro */
+
+    .error-message {
+        padding: 10px 12px;
+        margin-bottom: 16px;
+        border: 1px solid #f1b7bd;
+        border-radius: 6px;
+        background: #f8d7da;
+        color: #842029;
+        font-size: 14px;
+    }
+
+    /* Campos do produto */
+
+    .product-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 12px;
+    }
+
+    .field-full {
+        grid-column: 1 / -1;
+    }
+
+    .field-help {
+        display: block;
+        margin-top: 5px;
+        color: #666;
+        font-size: 12px;
+    }
+
+    /* Cartões de lotes */
+
+    .batch-card {
+        padding: 14px;
+        margin-bottom: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #fff;
+    }
+
+    .batch-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .batch-title {
+        margin: 0;
+        font-size: 15px;
+    }
+
+    .batch-number {
+        color: #666;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+    }
+
+    .batch-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 12px;
+    }
+
+    .batch-card .form-group {
+        margin-bottom: 12px;
+    }
+
+    .batch-card .form-group:last-child,
+    .batch-fields .form-group:nth-last-child(-n+2) {
+        margin-bottom: 0;
+    }
+
+    /* Novo lote */
+
+    .new-batch-card {
+        padding: 14px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #f8f8f8;
+    }
+
+    .new-batch-card .form-group {
+        margin-bottom: 12px;
+    }
+
+    .new-batch-card .form-group:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Botões */
+
+    .form-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 18px;
+    }
+
+    .form-actions button {
+        min-height: 42px;
+    }
+
+    .add-batch-button {
+        background: #198754;
+    }
+
+    .add-batch-button:hover {
+        background: #146c43;
+    }
+
+    .save-button {
+        background: #222;
+    }
+
+    /* Navegação de retorno */
+
+    .back-link {
+        display: inline-block;
+        margin-top: 4px;
+        color: #333;
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .empty-batches {
+        padding: 14px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        color: #666;
+        font-size: 14px;
+    }
+
+    /* Telas estreitas */
+
+    @media (max-width: 380px) {
+        .product-fields,
+        .batch-fields {
+            grid-template-columns: 1fr;
+        }
+
+        .field-full {
+            grid-column: auto;
+        }
+
+        .batch-fields .form-group {
+            margin-bottom: 12px;
+        }
+
+        .batch-fields .form-group:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    /* Lista compacta de lotes */
+
+    .batch-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .batch-item {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .batch-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px;
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .batch-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .batch-summary::marker {
+        content: "";
+    }
+
+    .batch-summary:active {
+        background: #f5f5f5;
+    }
+
+    .batch-summary-info {
+        min-width: 0;
+    }
+
+    .batch-summary-title {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-weight: bold;
+        overflow-wrap: anywhere;
+    }
+
+    .batch-summary-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        color: #666;
+        font-size: 12px;
+    }
+
+    .batch-toggle {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 5px;
+        background: #f0f0f0;
+        color: #222;
+        font-size: 18px;
+        font-weight: normal;
+    }
+
+    .batch-toggle::before {
+        content: "+";
+    }
+
+    .batch-item[open] .batch-toggle::before {
+        content: "−";
+    }
+
+    .batch-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 12px;
+        padding: 12px;
+        border-top: 1px solid #eee;
+    }
+
+    .batch-fields .form-group {
+        margin-bottom: 12px;
+    }
+
+    .batch-fields .form-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .batch-fields label {
+        font-size: 13px;
+    }
+
+    .batch-fields input {
+        min-width: 0;
+    }
+
+    @media (max-width: 380px) {
+        .batch-fields {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    
+</style>
+{% endblock %}
 
 {% block content %}
 
 {% if error %}
-    <p>{{ error }}</p>
+    <div class="error-message" role="alert">
+        {{ error }}
+    </div>
 {% endif %}
 
 <form method="POST">
     {% csrf_token %}
 
-    <h2>Dados do produto</h2>
+    <!-- Dados do produto -->
 
-    <div class="form-group">
-        <label for="name">Nome do produto</label>
-        <input
-            type="text"
-            id="name"
-            name="name"
-            value="{{ product.name }}"
-            required
-        >
-    </div>
+    <section class="edit-section">
+        <h2 class="section-title">Dados do produto</h2>
 
-    <div class="form-group">
-        <label for="brand">Marca</label>
-        <input
-            type="text"
-            id="brand"
-            name="brand"
-            value="{{ product.brand }}"
-        >
-    </div>
-
-    <div class="form-group">
-        <label for="barcode">Código de barras</label>
-        <input
-            type="text"
-            id="barcode"
-            value="{{ product.barcode }}"
-            readonly
-        >
-        <small>O código de barras não pode ser alterado.</small>
-    </div>
-
-    <div class="form-group">
-        <label for="price">Preço de venda (R$)</label>
-        <input
-            type="number"
-            id="price"
-            name="price"
-            min="0"
-            step="0.01"
-            value="{{ product.price }}"
-            required
-        >
-    </div>
-
-    <hr>
-
-    <h2>Lotes cadastrados</h2>
-
-    {% for batch in batches %}
-        <fieldset style="margin-bottom: 20px; padding: 15px;">
-            <legend>Lote {{ forloop.counter }}</legend>
-
-            <div class="form-group">
-                <label for="batch_number_{{ batch.id }}">
-                    Número do lote
-                </label>
+        <div class="product-fields">
+            <div class="form-group field-full">
+                <label for="name">Nome do produto</label>
                 <input
                     type="text"
-                    id="batch_number_{{ batch.id }}"
-                    name="batch_number_{{ batch.id }}"
-                    value="{{ batch.batch_number }}"
+                    id="name"
+                    name="name"
+                    value="{{ product.name }}"
+                    required
                 >
             </div>
 
             <div class="form-group">
-                <label for="expiration_date_{{ batch.id }}">
-                    Data de validade (DD/MM/AAAA)
-                </label>
+                <label for="brand">Marca</label>
                 <input
                     type="text"
-                    id="expiration_date_{{ batch.id }}"
-                    name="expiration_date_{{ batch.id }}"
-                    value="{% if batch.expiration_date %}{{ batch.expiration_date|date:'d/m/Y' }}{% endif %}"
+                    id="brand"
+                    name="brand"
+                    value="{{ product.brand }}"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="price">Preço de venda (R$)</label>
+                <input
+                    type="number"
+                    id="price"
+                    name="price"
+                    min="0"
+                    step="0.01"
+                    value="{{ product.price }}"
+                    required
+                >
+            </div>
+
+            <div class="form-group field-full">
+                <label for="barcode">Código de barras</label>
+                <input
+                    type="text"
+                    id="barcode"
+                    value="{{ product.barcode }}"
+                    readonly
+                >
+                <small class="field-help">
+                    O código de barras não pode ser alterado.
+                </small>
+            </div>
+        </div>
+    </section>
+
+    <!-- Lotes existentes -->
+
+    <section class="edit-section">
+        <h2 class="section-title">
+            Lotes cadastrados ({{ batches|length }})
+        </h2>
+
+        <p class="section-description">
+            Toque em um lote para consultar ou editar seus dados.
+        </p>
+
+        <div class="batch-list">
+            {% for batch in batches %}
+                <details class="batch-item">
+                    <summary class="batch-summary">
+                        <div class="batch-summary-info">
+                            <h3 class="batch-summary-title">
+                                {% if batch.batch_number %}
+                                    Lote: {{ batch.batch_number }}
+                                {% else %}
+                                    Lote sem identificação
+                                {% endif %}
+                            </h3>
+
+                            <div class="batch-summary-meta">
+                                <span>
+                                    Validade:
+                                    {% if batch.expiration_date %}
+                                        {{ batch.expiration_date|date:'d/m/Y' }}
+                                    {% else %}
+                                        Não informada
+                                    {% endif %}
+                                </span>
+
+                                <span>
+                                    Quantidade: {{ batch.quantity }} un.
+                                </span>
+                            </div>
+                        </div>
+
+                        <span class="batch-toggle" aria-hidden="true"></span>
+                    </summary>
+
+                    <div class="batch-fields">
+                        <div class="form-group">
+                            <label for="batch_number_{{ batch.id }}">
+                                Número do lote
+                            </label>
+
+                            <input
+                                type="text"
+                                id="batch_number_{{ batch.id }}"
+                                name="batch_number_{{ batch.id }}"
+                                value="{{ batch.batch_number }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expiration_date_{{ batch.id }}">
+                                Data de validade
+                            </label>
+
+                            <input
+                                type="text"
+                                id="expiration_date_{{ batch.id }}"
+                                name="expiration_date_{{ batch.id }}"
+                                value="{% if batch.expiration_date %}{{ batch.expiration_date|date:'d/m/Y' }}{% endif %}"
+                                placeholder="dd/mm/aaaa"
+                                maxlength="10"
+                                inputmode="numeric"
+                                class="date-field"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="quantity_{{ batch.id }}">
+                                Quantidade
+                            </label>
+
+                            <input
+                                type="number"
+                                id="quantity_{{ batch.id }}"
+                                name="quantity_{{ batch.id }}"
+                                min="0"
+                                step="1"
+                                value="{{ batch.quantity }}"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="purchase_price_{{ batch.id }}">
+                                Compra por unidade (R$)
+                            </label>
+
+                            <input
+                                type="number"
+                                id="purchase_price_{{ batch.id }}"
+                                name="purchase_price_{{ batch.id }}"
+                                min="0"
+                                step="0.01"
+                                value="{{ batch.purchase_price }}"
+                                required
+                            >
+                        </div>
+                    </div>
+                </details>
+            {% empty %}
+                <div class="empty-batches">
+                    Este produto ainda não possui lotes cadastrados.
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Cadastro de lote -->
+
+    <section class="edit-section">
+        <h2 class="section-title">Adicionar novo lote</h2>
+
+        <p class="section-description">
+            Preencha os dados abaixo para registrar um novo recebimento.
+        </p>
+
+        <div class="new-batch-card">
+            <div class="form-group">
+                <label for="new_batch_number">Número do lote</label>
+                <input
+                    type="text"
+                    id="new_batch_number"
+                    name="new_batch_number"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="new_expiration_date">Data de validade</label>
+                <input
+                    type="text"
+                    id="new_expiration_date"
+                    name="new_expiration_date"
                     placeholder="dd/mm/aaaa"
                     maxlength="10"
                     inputmode="numeric"
+                    class="date-field"
                 >
             </div>
 
             <div class="form-group">
-                <label for="quantity_{{ batch.id }}">Quantidade</label>
+                <label for="new_quantity">Quantidade recebida</label>
                 <input
                     type="number"
-                    id="quantity_{{ batch.id }}"
-                    name="quantity_{{ batch.id }}"
+                    id="new_quantity"
+                    name="new_quantity"
                     min="0"
                     step="1"
-                    value="{{ batch.quantity }}"
-                    required
                 >
             </div>
 
             <div class="form-group">
-                <label for="purchase_price_{{ batch.id }}">
-                    Preço de compra por unidade (R$)
+                <label for="new_purchase_price">
+                    Compra por unidade (R$)
                 </label>
                 <input
                     type="number"
-                    id="purchase_price_{{ batch.id }}"
-                    name="purchase_price_{{ batch.id }}"
+                    id="new_purchase_price"
+                    name="new_purchase_price"
                     min="0"
                     step="0.01"
-                    value="{{ batch.purchase_price }}"
-                    required
                 >
             </div>
-        </fieldset>
-    {% empty %}
-        <p>Este produto ainda não possui lotes cadastrados.</p>
-    {% endfor %}
-    
+        </div>
+    </section>
 
-    <hr>
+    <!-- Ações -->
 
-    <h2>Adicionar novo lote</h2>
-
-    <div class="form-group">
-        <label for="new_batch_number">Número do lote</label>
-        <input
-            type="text"
-            id="new_batch_number"
-            name="new_batch_number"
+    <div class="form-actions">
+        <button
+            type="submit"
+            name="action"
+            value="add_batch"
+            class="add-batch-button"
         >
-    </div>
+            Adicionar lote
+        </button>
 
-    <div class="form-group">
-        <label for="new_expiration_date">
-            Data de validade (DD/MM/AAAA)
-        </label>
-        <input
-            type="text"
-            id="new_expiration_date"
-            name="new_expiration_date"
-            placeholder="dd/mm/aaaa"
-            maxlength="10"
-            inputmode="numeric"
+        <button
+            type="submit"
+            name="action"
+            value="save"
+            class="save-button"
         >
+            Salvar alterações
+        </button>
     </div>
-
-    <div class="form-group">
-        <label for="new_quantity">Quantidade recebida</label>
-        <input
-            type="number"
-            id="new_quantity"
-            name="new_quantity"
-            min="0"
-            step="1"
-        >
-    </div>
-
-    <div class="form-group">
-        <label for="new_purchase_price">
-            Preço de compra por unidade (R$)
-        </label>
-        <input
-            type="number"
-            id="new_purchase_price"
-            name="new_purchase_price"
-            min="0"
-            step="0.01"
-        >
-    </div>
-
-    <button type="submit" name="action" value="add_batch">
-        Adicionar lote
-    </button>
-
-    <button type="submit" name="action" value="save">
-        Salvar alterações
-    </button>
-
 </form>
 
-<hr>
+<a href="{% url 'estoque' %}" class="back-link">
+    &larr; Voltar ao estoque
+</a>
 
-<a href="{% url 'estoque' %}">Voltar ao estoque</a>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    const campoData = document.getElementById("new_expiration_date");
+    function configurarCampoData(campo) {
+        campo.addEventListener("input", function (event) {
+            let numeros = event.target.value.replace(/\D/g, "");
+            numeros = numeros.substring(0, 8);
 
-    campoData.addEventListener("input", function (event) {
-        let numeros = event.target.value.replace(/\D/g, "");
-        numeros = numeros.substring(0, 8);
+            if (numeros.length > 4) {
+                event.target.value =
+                    numeros.substring(0, 2) + "/" +
+                    numeros.substring(2, 4) + "/" +
+                    numeros.substring(4);
+            } else if (numeros.length > 2) {
+                event.target.value =
+                    numeros.substring(0, 2) + "/" +
+                    numeros.substring(2);
+            } else {
+                event.target.value = numeros;
+            }
+        });
 
-        if (numeros.length > 4) {
-            event.target.value =
-                numeros.substring(0, 2) + "/" +
-                numeros.substring(2, 4) + "/" +
-                numeros.substring(4);
-        } else if (numeros.length > 2) {
-            event.target.value =
-                numeros.substring(0, 2) + "/" +
-                numeros.substring(2);
-        } else {
-            event.target.value = numeros;
-        }
-    });
+        campo.addEventListener("blur", function () {
+            const valor = campo.value.trim();
+
+            if (valor !== "" && !dataValida(valor)) {
+                alert(
+                    "Data inválida! Digite uma data válida no formato DD/MM/AAAA."
+                );
+            }
+        });
+    }
 
     function dataValida(valor) {
         const partes = valor.split("/");
@@ -238,31 +621,32 @@
             return false;
         }
 
-        const ultimoDia = new Date(ano, mes, 0).getDate();
+        const data = new Date(ano, mes - 1, dia);
 
-        return dia <= ultimoDia;
+        return (
+            data.getFullYear() === ano &&
+            data.getMonth() === mes - 1 &&
+            data.getDate() === dia
+        );
     }
 
-    campoData.addEventListener("blur", function () {
-        const valor = campoData.value.trim();
+    document.querySelectorAll(".date-field").forEach(configurarCampoData);
 
-        if (valor !== "" && !dataValida(valor)) {
-            alert("Data inválida! Digite uma data válida no formato DD/MM/AAAA.");
+    document.querySelector("form").addEventListener("submit", function (event) {
+        const camposData = document.querySelectorAll(".date-field");
+
+        for (const campo of camposData) {
+            const valor = campo.value.trim();
+
+            if (valor !== "" && !dataValida(valor)) {
+                event.preventDefault();
+                alert(
+                    "Data inválida! Digite uma data válida no formato DD/MM/AAAA."
+                );
+                campo.focus();
+                return;
+            }
         }
     });
-
-    campoData.form.addEventListener("submit", function (event) {
-        const valor = campoData.value.trim();
-
-        if (valor !== "" && !dataValida(valor)) {
-            event.preventDefault();
-
-            alert("Data inválida! Digite uma data válida no formato DD/MM/AAAA.");
-        }
-    });
-
-
-    
 </script>
-
 {% endblock %}

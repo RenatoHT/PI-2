@@ -1,12 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
-import requests
 from .models import Product, ProductBatch
 from django.db.models import Sum, Value
 from django.db.models.functions import Coalesce
 from django.db import transaction
-import json
 from datetime import datetime
+import requests
+import json
 
 #página de venda
 def scan(request):
@@ -31,7 +31,38 @@ def product_lookup(request, barcode):
             "barcode": barcode,
         })
 
-#Finalização de venda, subtração de produtos do estoque
+# Exclui um produto do estoque.
+# Exclui um produto do estoque.
+def product_delete(request, barcode):
+
+    if request.method != "POST":
+        return redirect("estoque")
+
+    product = get_object_or_404(Product, barcode=barcode)
+
+    if product.quantity > 0:
+        return render(
+            request,
+            "stock.html",
+            {
+                "products": Product.objects.annotate(
+                    total_quantity=Coalesce(
+                        Sum("batches__quantity"),
+                        Value(0),
+                    )
+                ).order_by("name"),
+                "error": (
+                    f'Não é possível excluir "{product.name}", '
+                    "pois ainda existem unidades em estoque."
+                ),
+            },
+        )
+
+    product.delete()
+
+    return redirect("estoque")
+
+# Finalização da venda, com baixa de estoque por lote.
 def finish_sale(request):
 
     if request.method != "POST":
@@ -39,27 +70,109 @@ def finish_sale(request):
             "error": "Método não permitido."
         }, status=405)
 
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+        products = data.get("products", [])
 
-    for item in data["products"]:
-
-        product = Product.objects.get(
-            barcode=item["barcode"]
-        )
-
-        quantity = item["quantity"]
-
-        if product.quantity < quantity:
+        if not products:
             return JsonResponse({
-                "error": f"Estoque insuficiente para {product.name}."
+                "error": "Nenhum produto informado para a venda."
             }, status=400)
 
-        product.quantity -= quantity
-        product.save()
+        with transaction.atomic():
 
-    return JsonResponse({
-        "success": True
-    })
+            for item in products:
+
+                barcode = item.get("barcode")
+                quantity = item.get("quantity")
+
+                if not barcode or not isinstance(quantity, int) or isinstance(quantity, bool) or quantity <= 0:
+                    return JsonResponse({
+                        "error": "Produto ou quantidade inválida."
+                    }, status=400)
+
+                product = Product.objects.filter(
+                    barcode=barcode
+                ).first()
+
+                if product is None:
+                    return JsonResponse({
+                        "error": f"Produto com código {barcode} não encontrado."
+                    }, status=404)
+
+                # Bloqueia os lotes deste produto durante a operação.
+                batches = list(
+                    ProductBatch.objects.select_for_update()
+                    .filter(product=product, quantity__gt=0)
+                    .order_by("id")
+                )
+
+                # Primeiro: lotes sem identificação e sem validade.
+                # Depois: lotes com validade, do vencimento mais próximo
+                # para o mais distante.
+                # Por último: lotes identificados sem validade.
+                batches.sort(
+                    key=lambda batch: (
+                        0 if not batch.batch_number and not batch.expiration_date else
+                        1 if batch.expiration_date is not None else
+                        2,
+                        batch.expiration_date or datetime.max.date(),
+                        batch.id,
+                    )
+                )
+
+                # Não permite utilizar lotes vencidos.
+                today = datetime.now().date()
+
+                available_quantity = sum(
+                    batch.quantity
+                    for batch in batches
+                    if (
+                        batch.expiration_date is None
+                        or batch.expiration_date >= today
+                    )
+                )
+
+                if available_quantity < quantity:
+                    return JsonResponse({
+                        "error": (
+                            f"Estoque disponível insuficiente para "
+                            f"{product.name}."
+                        )
+                    }, status=400)
+
+                remaining = quantity
+
+                for batch in batches:
+
+                    if batch.expiration_date is not None and batch.expiration_date < today:
+                        continue
+
+                    if remaining <= 0:
+                        break
+
+                    # Retira do lote a menor quantidade entre
+                    # o necessário e o disponível.
+                    deducted = min(batch.quantity, remaining)
+
+                    batch.quantity -= deducted
+                    batch.save(update_fields=["quantity"])
+
+                    remaining -= deducted
+
+        return JsonResponse({
+            "success": True
+        })
+
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return JsonResponse({
+            "error": "Dados da venda inválidos."
+        }, status=400)
+
+    except ProductBatch.DoesNotExist:
+        return JsonResponse({
+            "error": "Lote não encontrado."
+        }, status=400)
 
 # Página de estoque
 def stock(request):

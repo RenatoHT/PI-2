@@ -112,6 +112,54 @@
     const reader = document.getElementById("reader");
     const startButton = document.getElementById("start-scanner");
     const stopButton = document.getElementById("stop-scanner");
+    
+    const nameInput = document.getElementById("name");
+    const brandInput = document.getElementById("brand");
+
+    let lookupTimeout = null;
+
+    async function buscarProdutoPorCodigo(codigo) {
+        codigo = codigo.trim();
+
+        if (!codigo) return;
+
+        try {
+            const response = await fetch(
+                `/mercado/lookup/${encodeURIComponent(codigo)}/`
+            );
+
+            if (!response.ok) {
+                throw new Error(`Erro HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.name) {
+                nameInput.value = data.name;
+            }
+
+            if (data.brand) {
+                brandInput.value = data.brand;
+            }
+
+        } catch (error) {
+            console.error("Erro na busca do código de barras:", error);
+        }
+    }
+
+    // Permite digitar ou utilizar um leitor físico.
+    barcodeInput.addEventListener("input", function () {
+        clearTimeout(lookupTimeout);
+
+        const codigo = barcodeInput.value.trim();
+
+        if (!codigo) return;
+
+        lookupTimeout = setTimeout(() => {
+            buscarProdutoPorCodigo(codigo);
+        }, 500);
+    });
+
 
     let scanner = null;
     let scannerRunning = false;
@@ -173,30 +221,7 @@
                     stopScanner();
 
                     // Consulta a API local para buscar nome e marca.
-                    fetch(`/mercado/lookup/${encodeURIComponent(decodedText)}/`)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error("Falha ao consultar o produto.");
-                            }
-
-                            return response.json();
-                        })
-                        .then(data => {
-                            const nameInput = document.getElementById("name");
-                            const brandInput = document.getElementById("brand");
-
-                            // Preenche os campos somente quando a API retornar dados.
-                            if (data.name) {
-                                nameInput.value = data.name;
-                            }
-
-                            if (data.brand) {
-                                brandInput.value = data.brand;
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Erro ao consultar produto:", error);
-                        });
+                    buscarProdutoPorCodigo(decodedText);
                 },
                 () => {
                     // Ignora tentativas em que nenhum código foi identificado.

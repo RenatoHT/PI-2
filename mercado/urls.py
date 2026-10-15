@@ -9,5 +9,6 @@ urlpatterns = [
     path("product/<str:barcode>/edit/", views.product_edit, name="product_edit"),
     path("product/<str:barcode>/", views.product_lookup, name="product_lookup"),
     path("product/<str:barcode>/edit/", views.product_edit, name="product_edit"),
+    path("product/<str:barcode>/delete/", views.product_delete, name="product_delete"),
     path("finish-sale/", views.finish_sale, name="finish_sale"),
 ]
