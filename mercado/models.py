@@ -12,6 +12,7 @@ class Product(models.Model):
     @property
     def quantity(self):
         return sum(batch.quantity for batch in self.batches.all())
+    min_quantity = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.name
@@ -62,3 +63,32 @@ class SaleItems(models.Model):
         return f"{self.quantity_sold} x {self.product.name} (Sale {self.sale.id})"
 
 
+class ProductBatch(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='batches')
+    batch_number = models.CharField(max_length=100, verbose_name="Número do Lote")
+    expiration_date = models.DateField(verbose_name="Data de Validade")
+    quantity = models.PositiveIntegerField(default=0, verbose_name="Quantidade no Lote")
+    purchase_price = models.DecimalField(max_digits = 10, decimal_places = 2, verbose_name="Preço de Compra")
+
+    class Meta:
+        verbose_name = "Product Batch"
+        verbose_name_plural = "Product Batches"
+
+    def __str__(self):
+        return f"Lote {self.batch_number} - {self.product.name}"
+
+
+class CashMovement(models.Model):
+    """Movimentação de caixa, para registrar entradas e saídas de dinheiro."""
+    IN = "IN"
+    OUT = "OUT"
+    TYPE_CHOICES = [(IN, "Entrada"), (OUT, "Saída")]
+
+    type = models.CharField(max_length=3, choices=TYPE_CHOICES)       
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    sale = models.ForeignKey(Sale, null=True, on_delete=models.SET_NULL, related_name="cash_movements")
+
+    def __str__(self):
+        return f"{self.get_type_display()} R${self.amount}"
