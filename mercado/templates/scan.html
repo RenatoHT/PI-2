@@ -156,6 +156,48 @@ Escaneie os produtos
         transform: scale(0.99);
     }
 
+    /* Linha do produto e botão de exclusão */
+
+    .sale-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    }
+
+    .sale-item-details {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    }
+
+    /* X vermelho pequeno */
+
+    .remove-product {
+    display: inline-flex;
+    flex: 0 0 24px;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #dc3545;
+    font-family: Arial, sans-serif;
+    font-size: 22px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    }
+
+    .remove-product {
+    background: #fde7e9;
+    color: #b02a37;
+    }
     /* Ajustes para celulares */
 
     @media (max-width: 600px) {
@@ -248,8 +290,8 @@ Escaneie os produtos
 <!-- Adiciona o JavaScript específico da tela de vendas. -->
 {% block extra_js %}
 
-<!-- Carrega a biblioteca responsável pela leitura de códigos de barras. -->
-<script src="https://unpkg.com/html5-qrcode"></script>
+<!-- Carrega a biblioteca responsável pela leitura de códigos de barras e configuração da câmera -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <script>
 
@@ -300,8 +342,20 @@ function addBarcode(barcode) {
         })
         .then(data => {
             if (!data.found) {
-                alert("Produto não encontrado.");
-                barcodeInput.focus();
+                const cadastrar = confirm(
+                    `O produto com código de barras ${barcode} não está cadastrado.\n\n` +
+                    "Deseja cadastrar esse produto agora?\n\n" +
+                    "Clique em OK para cadastrar ou Cancelar para voltar à venda."
+                );
+
+                if (cadastrar) {
+                    window.location.href =
+                        `/mercado/stock/new/?barcode=${encodeURIComponent(barcode)}`;
+                } else {
+                    barcodeInput.value = "";
+                    barcodeInput.focus();
+                }
+
                 return;
             }
 
@@ -387,11 +441,10 @@ function renderSale() {
     let total = 0;
 
     // Percorre todos os produtos incluídos na venda.
-    sale.forEach(product => {
+    sale.forEach((product, index) => {
 
         // Calcula o subtotal de cada produto.
-        const subtotal =
-            product.price * product.quantity;
+        const subtotal = product.price * product.quantity;
 
         // Soma o subtotal ao valor total da venda.
         total += subtotal;
@@ -399,21 +452,54 @@ function renderSale() {
         // Cria um elemento HTML para exibir o produto.
         const item = document.createElement("li");
 
+        // Cria a linha que alinha o produto e o X.
+        const row = document.createElement("div");
+        row.className = "sale-item-row";
+
         // Monta o texto com nome, quantidade, preço unitário e subtotal.
-        item.textContent =
+        const details = document.createElement("div");
+        details.className = "sale-item-details";
+        details.textContent =
             `${product.name} - ` +
             `${product.quantity} x ` +
             `R$ ${product.price.toFixed(2)} = ` +
             `R$ ${subtotal.toFixed(2)}`;
 
-        // Adiciona o produto à lista visível na página.
-        saleList.appendChild(item);
+        // Adiciona o texto do produto à mesma linha do X.
+        row.appendChild(details);
+        
+        // Opção de remover item da lista
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "remove-product";
+        removeButton.textContent = "×";
+        removeButton.setAttribute("aria-label", `Excluir ${product.name}`);
+        removeButton.title = "Excluir produto";
 
+        // Solicita confirmação antes de remover o produto.
+        removeButton.addEventListener("click", () => {
+            const confirmed = confirm(
+                `Deseja excluir "${product.name}" da venda?`
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            sale.splice(index, 1);
+            renderSale();
+        });
+
+        // Adiciona o X à mesma linha do produto.
+        row.appendChild(removeButton);
+
+        // Adiciona a linha à lista de produtos.
+        item.appendChild(row);
+        saleList.appendChild(item);
     });
 
     // Exibe o total usando vírgula como separador decimal.
-    totalElement.textContent =
-        total.toFixed(2).replace(".", ",");
+    totalElement.textContent = total.toFixed(2).replace(".", ",");
 }
 
 
@@ -570,27 +656,15 @@ function getCookie(name) {
 
 // Inicia a câmera e configura a leitura contínua dos códigos de barras.
 scanner.start(
-
-    // Prioriza a câmera traseira do dispositivo.
     { facingMode: "environment" },
-
     {
-        // Define o número de tentativas de leitura por segundo.
         fps: 10,
-
-        // Define a área retangular utilizada para enquadrar o código.
         qrbox: {
             width: 320,
             height: 120
-        },
-
-        // Solicita configurações de vídeo para a câmera.
-        videoConstraints: {
-            facingMode: "environment",
-            focusMode: "continuous"
         }
-
     },
+
 
     // Executa esta função quando um código é lido com sucesso.
     onScanSuccess,

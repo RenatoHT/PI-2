@@ -1,10 +1,11 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
-from .models import Product, ProductBatch
+from .models import Product, ProductBatch, Sale, SaleItems, CashMovement
 from django.db.models import Sum, Value
 from django.db.models.functions import Coalesce
 from django.db import transaction
 from datetime import datetime
+from decimal import Decimal
 import requests
 import json
 
@@ -31,7 +32,6 @@ def product_lookup(request, barcode):
             "barcode": barcode,
         })
 
-# Exclui um produto do estoque.
 # Exclui um produto do estoque.
 def product_delete(request, barcode):
 
@@ -62,7 +62,7 @@ def product_delete(request, barcode):
 
     return redirect("estoque")
 
-# Finalização da venda, com baixa de estoque por lote.
+# Finalização da venda, com baixa de estoque por lote e registro de venda
 def finish_sale(request):
 
     if request.method != "POST":
@@ -80,6 +80,10 @@ def finish_sale(request):
             }, status=400)
 
         with transaction.atomic():
+
+            # Cria o registro da venda.
+            sale = Sale.objects.create()
+            total = Decimal("0.00")
 
             for item in products:
 
@@ -141,6 +145,16 @@ def finish_sale(request):
                         )
                     }, status=400)
 
+                # Registra o item vendido.
+                SaleItems.objects.create(
+                    sale=sale,
+                    product=product,
+                    quantity_sold=quantity,
+                    unit_price=product.price
+                )
+                
+                total += product.price * quantity
+                
                 remaining = quantity
 
                 for batch in batches:
@@ -160,9 +174,23 @@ def finish_sale(request):
 
                     remaining -= deducted
 
+            # Salva o total da venda.
+            sale.total_amount = total
+            sale.save(update_fields=["total_amount"])
+
+            # Registra a entrada no caixa.
+            CashMovement.objects.create(
+                type=CashMovement.IN,
+                amount=total,
+                description=f"Venda {sale.id}",
+                sale=sale
+            )
+
         return JsonResponse({
-            "success": True
-        })
+            "success": True,
+            "sale_id": sale.id,
+            "total_amount": str(total)
+        }, status=201)
 
     except (json.JSONDecodeError, TypeError, ValueError):
         return JsonResponse({
@@ -217,8 +245,12 @@ def product_create(request):
         else:
             expiration_date = None
 
-        quantity = request.POST.get("quantity")
-        purchase_price = request.POST.get("purchase_price")
+        quantity = int(request.POST.get("quantity"))
+        purchase_price_text = request.POST.get(
+            "purchase_price", ""
+        ).strip().replace(",", ".")
+
+        purchase_price = Decimal(purchase_price_text)
 
         try:
             with transaction.atomic():
@@ -229,12 +261,22 @@ def product_create(request):
                     price=price,
                 )
 
-                ProductBatch.objects.create(
+
+                lote = ProductBatch.objects.create(
                     product=product,
                     batch_number=batch_number,
                     expiration_date=expiration_date,
                     quantity=quantity,
                     purchase_price=purchase_price,
+                )
+
+                
+                total = Decimal(lote.quantity) * lote.purchase_price
+
+                CashMovement.objects.create(
+                    type=CashMovement.OUT,
+                    amount=total,
+                    description=f"Compra de lote {lote.batch_number} - {product.name}",
                 )
 
             return render(
@@ -273,13 +315,15 @@ def product_edit(request, barcode):
                         "new_expiration_date", ""
                     ).strip()
 
-                    quantity = request.POST.get(
+                    quantity = int(request.POST.get(
                         "new_quantity", ""
-                    ).strip()
+                    ).strip())
 
-                    purchase_price = request.POST.get(
+                    purchase_price_text = request.POST.get(
                         "new_purchase_price", ""
-                    ).strip()
+                    ).strip().replace(",", ".")
+
+                    purchase_price = Decimal(purchase_price_text)
 
                     if expiration_date_text:
                         expiration_date = datetime.strptime(
@@ -288,7 +332,7 @@ def product_edit(request, barcode):
                     else:
                         expiration_date = None
 
-                    ProductBatch.objects.create(
+                    lote = ProductBatch.objects.create(
                         product=product,
                         batch_number=batch_number,
                         expiration_date=expiration_date,
@@ -296,6 +340,16 @@ def product_edit(request, barcode):
                         purchase_price=purchase_price,
                     )
 
+                    
+                    total = Decimal(lote.quantity) * lote.purchase_price
+
+                    CashMovement.objects.create(
+                        type=CashMovement.OUT,
+                        amount=total,
+                        description=(
+                            f"Compra de lote {lote.batch_number} - {product.name}"
+                        ),
+                    )
                 elif action == "save":
                     product.name = request.POST.get(
                         "name", ""

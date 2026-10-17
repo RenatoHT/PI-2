@@ -12,6 +12,7 @@ class Product(models.Model):
     @property
     def quantity(self):
         return sum(batch.quantity for batch in self.batches.all())
+    min_quantity = models.PositiveIntegerField(default=5)
 
     def __str__(self):
         return self.name
@@ -61,4 +62,17 @@ class SaleItems(models.Model):
     def __str__(self):
         return f"{self.quantity_sold} x {self.product.name} (Sale {self.sale.id})"
 
+class CashMovement(models.Model):
+    """Movimentação de caixa, para registrar entradas e saídas de dinheiro."""
+    IN = "IN"
+    OUT = "OUT"
+    TYPE_CHOICES = [(IN, "Entrada"), (OUT, "Saída")]
 
+    type = models.CharField(max_length=3, choices=TYPE_CHOICES)       
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=200, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    sale = models.ForeignKey(Sale, null=True, on_delete=models.SET_NULL, related_name="cash_movements")
+
+    def __str__(self):
+        return f"{self.get_type_display()} R${self.amount}"

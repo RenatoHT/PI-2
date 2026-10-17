@@ -38,6 +38,7 @@
             id="barcode"
             name="barcode"
             placeholder="Digite ou leia o código"
+            value="{{ request.GET.barcode|default:'' }}"
             required
         >
 
@@ -105,7 +106,7 @@
 
 {% block extra_js %}
 
-<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <script>
     const barcodeInput = document.getElementById("barcode");
@@ -202,10 +203,11 @@
                 {
                     fps: 10,
                     qrbox: {
-                        width: 300,
+                        width: 320,
                         height: 120
                     }
                 },
+
                 (decodedText) => {
                     // Evita processar várias vezes a mesma leitura.
                     if (decodedText === lastBarcode) {
