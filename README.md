@@ -4,6 +4,11 @@ Aplicação web desenvolvida com Django para cadastro e consulta de produtos por
 
 O projeto está sendo desenvolvido com foco em uma interface simples, responsiva e adequada para uso em dispositivos móveis.
 
+https://tinyurl.com/P2mercado
+
+https://docs.google.com/spreadsheets/d/1Myfgn3MaPbwG75cfQxyI9-Yo7xms5hTo8gEWU-vwAqE/edit?pli=1&gid=0#gid=0
+
+
 ## Funcionalidades
 
 * **Cadastro de produtos:** registro de código de barras, nome, quantidade e preço.
