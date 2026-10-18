@@ -62,6 +62,13 @@ def product_delete(request, barcode):
 
     return redirect("estoque")
 
+class SaleError(Exception):
+    def __init__(self, message, status=400):
+        self.message = message
+        self.status = status
+        super().__init__(message)
+
+
 # Finalização da venda, com baixa de estoque por lote e registro de venda
 def finish_sale(request):
 
@@ -91,18 +98,17 @@ def finish_sale(request):
                 quantity = item.get("quantity")
 
                 if not barcode or not isinstance(quantity, int) or isinstance(quantity, bool) or quantity <= 0:
-                    return JsonResponse({
-                        "error": "Produto ou quantidade inválida."
-                    }, status=400)
+                    raise SaleError("Produto ou quantidade inválida.")
 
                 product = Product.objects.filter(
                     barcode=barcode
                 ).first()
 
                 if product is None:
-                    return JsonResponse({
-                        "error": f"Produto com código {barcode} não encontrado."
-                    }, status=404)
+                    raise SaleError(
+                        f"Produto com código {barcode} não encontrado.",
+                        status=404
+                    )
 
                 # Bloqueia os lotes deste produto durante a operação.
                 batches = list(
@@ -112,9 +118,7 @@ def finish_sale(request):
                 )
 
                 # Primeiro: lotes sem identificação e sem validade.
-                # Depois: lotes com validade, do vencimento mais próximo
-                # para o mais distante.
-                # Por último: lotes identificados sem validade.
+                # Depois: lotes com validade, do vencimento mais próximo para o mais distante.
                 batches.sort(
                     key=lambda batch: (
                         0 if not batch.batch_number and not batch.expiration_date else
@@ -138,12 +142,11 @@ def finish_sale(request):
                 )
 
                 if available_quantity < quantity:
-                    return JsonResponse({
-                        "error": (
-                            f"Estoque disponível insuficiente para "
-                            f"{product.name}."
-                        )
-                    }, status=400)
+                    raise SaleError(
+                        f"Estoque disponível insuficiente para "
+                        f"{product.name}."
+                    )
+
 
                 # Registra o item vendido.
                 SaleItems.objects.create(
@@ -157,6 +160,7 @@ def finish_sale(request):
                 
                 remaining = quantity
 
+                # Baixa o estoque dos lotes na ordem definida.
                 for batch in batches:
 
                     if batch.expiration_date is not None and batch.expiration_date < today:
@@ -165,8 +169,7 @@ def finish_sale(request):
                     if remaining <= 0:
                         break
 
-                    # Retira do lote a menor quantidade entre
-                    # o necessário e o disponível.
+                    # Retira do lote a menor quantidade entre necessário e o disponível.
                     deducted = min(batch.quantity, remaining)
 
                     batch.quantity -= deducted
@@ -192,15 +195,13 @@ def finish_sale(request):
             "total_amount": str(total)
         }, status=201)
 
-    except (json.JSONDecodeError, TypeError, ValueError):
+    except SaleError as exc:
+        # A exceção foi lançada dentro do atomic.
+        # Ao sair dele, o Django executa o rollback.
         return JsonResponse({
-            "error": "Dados da venda inválidos."
-        }, status=400)
+            "error": exc.message
+        }, status=exc.status)
 
-    except ProductBatch.DoesNotExist:
-        return JsonResponse({
-            "error": "Lote não encontrado."
-        }, status=400)
 
 # Página de estoque
 def stock(request):
