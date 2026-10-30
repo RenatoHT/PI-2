@@ -224,6 +224,13 @@
 
                     // Consulta a API local para buscar nome e marca.
                     buscarProdutoPorCodigo(decodedText);
+
+                    // Libera uma nova leitura após 1,5 segundo.
+                    setTimeout(() => {
+                        lastBarcode = null;
+                    }, 1500);       
+
+
                 },
                 () => {
                     // Ignora tentativas em que nenhum código foi identificado.

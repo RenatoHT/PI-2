@@ -386,10 +386,10 @@ function onScanSuccess(barcode) {
     // Consulta o produto e tenta adicioná-lo à venda.
     addBarcode(barcode);
 
-    // Libera uma nova leitura após um segundo.
+    // Libera uma nova leitura após 1,5 segundo.
     setTimeout(() => {
         lastBarcode = null;
-    }, 1000);
+    }, 1500);
 }
 
 
