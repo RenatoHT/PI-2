@@ -8,12 +8,11 @@
 
 {% block extra_css %}
 <style>
-    /* Três números lado a lado; no celular a grade continua com três colunas
-       porque cada cartão só tem um número e um rótulo curto. */
+    /* Quatro números em grade 2 x 2, legível no celular. */
 
     .summary {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 8px;
         margin-bottom: 24px;
     }
@@ -58,22 +57,35 @@
     .shortcut-expirations {
         background: #b45309;
     }
+
+    .shortcut-low-stock {
+        background: #6f42c1;
+    }
+
+    /* Cartão clicável leva à lista correspondente */
+
+    a.summary-card {
+        color: inherit;
+        text-decoration: none;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 
 <section class="summary" aria-label="Resumo de hoje">
-    <div class="summary-card {% if resumo.lotes_vencidos %}summary-alert{% endif %}">
+    <a href="{% url 'vencimentos' %}" class="summary-card {% if resumo.lotes_vencidos %}summary-alert{% endif %}">
         <span class="summary-number">{{ resumo.lotes_vencidos }}</span>
         <span class="summary-label">lotes vencidos</span>
-    </div>
-
-    <div class="summary-card">
+    </a>
+    <a href="{% url 'vencimentos' %}?dias={{ dias_padrao }}" class="summary-card">
         <span class="summary-number">{{ resumo.lotes_proximos }}</span>
         <span class="summary-label">vencem em {{ dias_padrao }} dias</span>
-    </div>
-
+    </a>
+    <a href="{% url 'estoque_baixo' %}" class="summary-card {% if estoque_baixo %}summary-alert{% endif %}">
+        <span class="summary-number">{{ estoque_baixo }}</span>
+        <span class="summary-label">abaixo do mínimo</span>
+    </a>
     <div class="summary-card">
         <span class="summary-number">{{ resumo.total_produtos }}</span>
         <span class="summary-label">produtos</span>
@@ -87,6 +99,9 @@
 
     <a href="{% url 'vencimentos' %}" class="button shortcut shortcut-expirations">
         Vencimentos
+    </a>
+    <a href="{% url 'estoque_baixo' %}" class="button shortcut shortcut-low-stock">
+        Estoque baixo
     </a>
 
     <a href="{% url 'scan' %}" class="button shortcut">

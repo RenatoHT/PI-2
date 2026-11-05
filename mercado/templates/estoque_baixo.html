@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Estoque baixo{% endblock %}
+{% block header_title %}Estoque baixo{% endblock %}
+{% block header_subtitle %}Produtos com quantidade igual ou menor que o mínimo{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Mesmo visual da tela de vencimentos */
+
+    .count {
+        margin: 0 0 12px;
+        font-size: 14px;
+        color: var(--color-muted);
+    }
+
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .low-stock-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .low-stock-table th,
+    .low-stock-table td {
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .low-stock-table th {
+        background: #f5f5f5;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .low-stock-table small {
+        display: block;
+        color: var(--color-muted);
+    }
+
+    .out-of-stock-row td {
+        background: #fdecee;
+    }
+
+    .out-of-stock-label {
+        color: var(--color-danger);
+        font-weight: bold;
+    }
+
+    .empty-list {
+        padding: 16px;
+        background: #f5f5f5;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .hint {
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--color-muted);
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-top: 16px;
+        color: #333;
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if produtos %}
+
+<p class="count">
+    {{ produtos|length }} produto{{ produtos|length|pluralize }} para repor
+</p>
+
+<div class="table-container">
+    <table class="low-stock-table">
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Qtd.</th>
+                <th>Mínimo</th>
+                <th>Situação</th>
+                <th></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for produto in produtos %}
+            <tr class="{% if produto.total_quantity == 0 %}out-of-stock-row{% endif %}">
+                <td>
+                    {{ produto.name }}
+                    {% if produto.brand %}<small>{{ produto.brand }}</small>{% endif %}
+                    <small>{{ produto.barcode }}</small>
+                </td>
+                <td>{{ produto.total_quantity }}</td>
+                <td>{{ produto.min_quantity }}</td>
+                <td>
+                    {% if produto.total_quantity == 0 %}
+                        <span class="out-of-stock-label">Sem estoque</span>
+                    {% else %}
+                        Abaixo do mínimo
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'product_edit' produto.barcode %}">Editar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<p class="hint">O estoque mínimo de cada produto pode ser alterado na tela de edição.</p>
+
+{% else %}
+
+<div class="empty-list">
+    <p>Nenhum produto está abaixo do estoque mínimo.</p>
+</div>
+
+{% endif %}
+
+<a href="{% url 'painel' %}" class="back-link">
+    ← Voltar ao início
+</a>
+
+{% endblock %}
