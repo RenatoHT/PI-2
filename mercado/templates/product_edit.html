@@ -350,6 +350,19 @@
                 >
             </div>
 
+            <div class="form-group">
+                <label for="min_quantity">Estoque mínimo</label>
+                <input
+                    type="number"
+                    id="min_quantity"
+                    name="min_quantity"
+                    min="0"
+                    step="1"
+                    value="{{ product.min_quantity }}"
+                    required
+                >
+            </div>
+
             <div class="form-group field-full">
                 <label for="barcode">Código de barras</label>
                 <input

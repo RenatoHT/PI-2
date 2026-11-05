@@ -8,6 +8,7 @@ urlpatterns = [
     # Painel inicial e vencimentos
     path("", views_painel.painel, name="painel"),
     path("vencimentos/", views_painel.listar_vencimentos, name="vencimentos"),
+    path("estoque-baixo/", views_painel.listar_estoque_baixo, name="estoque_baixo"),
     # Login e usuários do mercado (todas as outras rotas exigem sessão)
     path("entrar/", views_usuarios.TelaDeLogin.as_view(), name="entrar"),
     path("sair/", views_usuarios.Sair.as_view(), name="sair"),

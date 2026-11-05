@@ -365,6 +365,16 @@ def product_edit(request, barcode):
                     ).strip()
 
                     product.price = request.POST.get("price", "").strip()
+
+                    # Estoque mínimo usado no alerta de estoque baixo.
+                    # Valor negativo ou não numérico cai no except abaixo.
+                    min_quantity = int(request.POST.get(
+                        "min_quantity", product.min_quantity
+                    ))
+                    if min_quantity < 0:
+                        raise ValueError("Estoque mínimo negativo.")
+                    product.min_quantity = min_quantity
+
                     product.save()
 
                     batches = product.batches.all()
