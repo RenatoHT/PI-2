@@ -28,10 +28,16 @@ def interpretar_filtro_dias(valor_bruto: str | None) -> int:
 
 
 def _erro_filtro_invalido(valor_bruto: str) -> ValueError:
+    # Mensagem lida pelo operador: lista as opções em português, sem a tupla do Python.
     return ValueError(
-        f"Filtro de dias inválido: {valor_bruto!r}. "
-        f"Esperado um número inteiro entre {FILTROS_DIAS_VENCIMENTO}."
+        f"Prazo inválido ({valor_bruto}). Escolha {_listar_opcoes_de_dias()} dias."
     )
+
+
+def _listar_opcoes_de_dias() -> str:
+    """(3, 7, 15, 30) vira "3, 7, 15 ou 30"."""
+    opcoes = [str(dias) for dias in FILTROS_DIAS_VENCIMENTO]
+    return ", ".join(opcoes[:-1]) + " ou " + opcoes[-1]
 
 
 def dias_restantes(hoje: date, validade: date) -> int:
