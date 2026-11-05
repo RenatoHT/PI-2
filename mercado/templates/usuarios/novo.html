@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Novo usuário{% endblock %}
+
+{% block header_title %}Novo usuário{% endblock %}
+
+{% block header_subtitle %}Só administradores cadastram usuários{% endblock %}
+
+{% block content %}
+
+<form method="post">
+    {% csrf_token %}
+    {{ formulario.as_div }}
+    <button type="submit">Criar usuário</button>
+</form>
+
+<a href="{% url 'usuarios' %}" class="back-link">← Voltar à lista</a>
+
+{% endblock %}

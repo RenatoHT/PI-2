@@ -25,7 +25,14 @@ Consulta e gerenciamento de produtos
         margin: 0;
     }
 
-    .add-product-button {
+    .stock-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .add-product-button,
+    .expirations-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -42,6 +49,21 @@ Consulta e gerenciamento de produtos
 
     .add-product-button:hover {
         background: #146c43;
+    }
+
+    .expirations-button {
+        background: #b45309;
+    }
+
+    .expirations-button:hover {
+        background: #92400e;
+    }
+
+    /* Validade vencida */
+
+    .expired-date {
+        color: #dc3545;
+        font-weight: bold;
     }
 
     /* Tabela */
@@ -184,12 +206,21 @@ Consulta e gerenciamento de produtos
 <div class="stock-actions">
     <h2>Produtos cadastrados</h2>
 
-    <a
-        href="{% url 'product_create' %}"
-        class="add-product-button"
-    >
-        + Cadastrar produto
-    </a>
+    <div class="stock-buttons">
+        <a
+            href="{% url 'vencimentos' %}"
+            class="expirations-button"
+        >
+            Vencimentos
+        </a>
+
+        <a
+            href="{% url 'product_create' %}"
+            class="add-product-button"
+        >
+            + Cadastrar produto
+        </a>
+    </div>
 </div>
 
 {% if products %}
@@ -203,6 +234,7 @@ Consulta e gerenciamento de produtos
                 <th>Marca</th>
                 <th>Preço de venda</th>
                 <th>Quantidade total</th>
+                <th>Próxima validade</th>
                 <th>Ações</th>
             </tr>
         </thead>
@@ -221,6 +253,15 @@ Consulta e gerenciamento de produtos
                 </td>
                 <td>R$ {{ product.price|floatformat:2 }}</td>
                 <td>{{ product.total_quantity }}</td>
+                <td>
+                    {% if product.proxima_validade %}
+                        <span class="{% if product.proxima_validade < hoje %}expired-date{% endif %}">
+                            {{ product.proxima_validade|date:"d/m/Y" }}
+                        </span>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
                 <td>
                     <div class="action-buttons">
                         <a

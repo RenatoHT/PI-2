@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Sem acesso{% endblock %}
+
+{% block header_title %}Sem acesso ao painel{% endblock %}
+
+{% block header_subtitle %}Esta conta é técnica, não do mercado{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <p>
+        O usuário <strong>{{ user.username }}</strong> é a conta técnica do Django
+        (painel <a href="{% url 'admin:index' %}">/admin/</a>) e não tem perfil no mercado.
+    </p>
+    <p>
+        Para usar o painel, saia e entre com um usuário do mercado. O primeiro
+        administrador do mercado é criado pelas variáveis
+        <code>MERCADO_ADMIN_USUARIO</code> e <code>MERCADO_ADMIN_SENHA</code>.
+    </p>
+</div>
+
+<form method="post" action="{% url 'sair' %}">
+    {% csrf_token %}
+    <button type="submit">Sair desta conta</button>
+</form>
+
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Entrar{% endblock %}
+
+{% block header_title %}Mercado{% endblock %}
+
+{% block header_subtitle %}Entre para continuar{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-error {
+        padding: 12px;
+        margin-bottom: 16px;
+        border: 1px solid var(--color-danger);
+        border-radius: var(--radius);
+        color: var(--color-danger);
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if form.errors %}
+<p class="login-error" role="alert">
+    Usuário ou senha inválidos. Confira e tente de novo.
+</p>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+
+    <div class="form-group">
+        <label for="id_username">Usuário</label>
+        <input type="text" name="username" id="id_username"
+               autocomplete="username" autocapitalize="none" autofocus required>
+    </div>
+
+    <div class="form-group">
+        <label for="id_password">Senha</label>
+        <input type="password" name="password" id="id_password"
+               autocomplete="current-password" required>
+    </div>
+
+    <button type="submit">Entrar</button>
+</form>
+
+{% endblock %}

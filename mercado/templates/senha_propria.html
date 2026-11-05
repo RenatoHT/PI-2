@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Minha senha{% endblock %}
+
+{% block header_title %}Minha senha{% endblock %}
+
+{% block header_subtitle %}Troque a senha deste usuário{% endblock %}
+
+{% block content %}
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit">Salvar nova senha</button>
+</form>
+
+<a href="{% url 'painel' %}" class="back-link">← Voltar ao início</a>
+
+{% endblock %}
