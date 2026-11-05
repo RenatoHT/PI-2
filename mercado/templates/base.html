@@ -255,7 +255,58 @@
                 border-radius: 8px;
             }
         }
-        </style>
+        /* Barra do usuário e mensagens */
+
+        .user-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--space-medium);
+            margin-top: var(--space-small);
+            font-size: 13px;
+        }
+
+        .user-bar a {
+            color: #fff;
+        }
+
+        .user-bar form {
+            display: inline;
+            margin: 0;
+        }
+
+        .user-bar button {
+            width: auto;
+            min-height: 30px;
+            padding: 4px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            background: transparent;
+            font-size: 13px;
+        }
+
+        .messages {
+            margin: 0 0 var(--space-large);
+            padding: 0;
+            list-style: none;
+        }
+
+        .message {
+            padding: 10px 12px;
+            margin-bottom: var(--space-small);
+            border-radius: var(--radius);
+            font-size: 14px;
+        }
+
+        .message-success {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            color: #842029;
+        }
+    </style>
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -268,17 +319,40 @@
         <h1>{% block header_title %}Mercado{% endblock %}</h1>
 
         <p>{% block header_subtitle %}{% endblock %}</p>
+
+        {% if user.is_authenticated %}
+        <div class="user-bar">
+            <span>{{ user.username }}</span>
+            <a href="{% url 'senha_propria' %}">Minha senha</a>
+            {% if administrador_do_mercado %}<a href="{% url 'usuarios' %}">Usuários</a>{% endif %}
+            <form method="post" action="{% url 'sair' %}">
+                {% csrf_token %}
+                <button type="submit">Sair</button>
+            </form>
+        </div>
+        {% endif %}
     </header>
 
     <main class="content">
+        {% if messages %}
+        <ul class="messages">
+            {% for mensagem in messages %}
+            <li class="message message-{{ mensagem.tags }}" role="status">{{ mensagem }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
         {% block content %}
         {% endblock %}
     </main>
 
+    {% if user.is_authenticated %}
     <nav class="nav">
+        <a href="{% url 'painel' %}">Início</a>
         <a href="/mercado/stock/">Estoque</a>
         <a href="/mercado/scan/">Venda</a>
     </nav>
+    {% endif %}
 
 </div>
 

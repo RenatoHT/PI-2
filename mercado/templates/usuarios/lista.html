@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Usuários{% endblock %}
+
+{% block header_title %}Usuários{% endblock %}
+
+{% block header_subtitle %}Quem pode entrar no sistema{% endblock %}
+
+{% block extra_css %}
+<style>
+    .users-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+
+    .users-actions h2 {
+        margin: 0;
+    }
+
+    .add-user-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 8px 12px;
+        background: #198754;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .users-table th,
+    .users-table td {
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: middle;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .users-table th {
+        background: #f5f5f5;
+        font-size: 12px;
+    }
+
+    .inactive-row td {
+        color: var(--color-muted);
+    }
+
+    .row-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .row-actions a,
+    .row-actions button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        width: auto;
+        padding: 6px 9px;
+        border: none;
+        border-radius: 5px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: bold;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .password-button {
+        background: #0d6efd;
+    }
+
+    .toggle-form {
+        display: inline-flex;
+        margin: 0;
+    }
+
+    .deactivate-button {
+        background: #dc3545;
+    }
+
+    .activate-button {
+        background: #198754;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="users-actions">
+    <h2>Usuários cadastrados</h2>
+    <a href="{% url 'usuario_novo' %}" class="add-user-button">+ Novo usuário</a>
+</div>
+
+<div class="table-container">
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>Usuário</th>
+                <th>Papel</th>
+                <th>Situação</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
+            <tr class="{% if not usuario.is_active %}inactive-row{% endif %}">
+                <td>
+                    {{ usuario.username }}
+                    {% if usuario == user %}<small>(você)</small>{% endif %}
+                </td>
+                <td>{% if usuario.perfil_mercado.administrador %}Administrador{% else %}Usuário{% endif %}</td>
+                <td>{% if usuario.is_active %}Ativo{% else %}Inativo{% endif %}</td>
+                <td>
+                    <div class="row-actions">
+                        <a href="{% url 'usuario_senha' usuario_id=usuario.id %}" class="password-button">
+                            Trocar senha
+                        </a>
+
+                        {% if usuario != user %}
+                        <form method="post" action="{% url 'usuario_ativo' usuario_id=usuario.id %}" class="toggle-form">
+                            {% csrf_token %}
+                            {% if usuario.is_active %}
+                            <button type="submit" class="deactivate-button">Desativar</button>
+                            {% else %}
+                            <button type="submit" class="activate-button">Reativar</button>
+                            {% endif %}
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

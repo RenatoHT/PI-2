@@ -1,9 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from .models import Product, ProductBatch, Sale, SaleItems, CashMovement
-from django.db.models import Sum, Value
+from django.db.models import Min, Q, QuerySet, Sum, Value
 from django.db.models.functions import Coalesce
 from django.db import transaction
+from django.utils import timezone
 from datetime import datetime
 from decimal import Decimal
 import requests
@@ -45,12 +46,8 @@ def product_delete(request, barcode):
             request,
             "stock.html",
             {
-                "products": Product.objects.annotate(
-                    total_quantity=Coalesce(
-                        Sum("batches__quantity"),
-                        Value(0),
-                    )
-                ).order_by("name"),
+                "products": listar_produtos_com_totais(),
+                "hoje": timezone.localdate(),
                 "error": (
                     f'Não é possível excluir "{product.name}", '
                     "pois ainda existem unidades em estoque."
@@ -203,19 +200,26 @@ def finish_sale(request):
         }, status=exc.status)
 
 
-# Página de estoque
-def stock(request):
-    products = Product.objects.annotate(
-        total_quantity=Coalesce(
-            Sum("batches__quantity"),
-            Value(0)
-        )
+# Produtos com a quantidade total e a validade mais próxima (só lotes com estoque)
+def listar_produtos_com_totais() -> QuerySet[Product]:
+    return Product.objects.annotate(
+        total_quantity=Coalesce(Sum("batches__quantity"), Value(0)),
+        proxima_validade=Min(
+            "batches__expiration_date",
+            filter=Q(batches__quantity__gt=0),
+        ),
     ).order_by("name")
 
+# Página de estoque
+def stock(request):
     return render(
         request,
         "stock.html",
-        {"products": products}
+        {
+            "products": listar_produtos_com_totais(),
+            # "hoje" permite ao template destacar validade já passada.
+            "hoje": timezone.localdate(),
+        },
     )
 
 #Cadastro de produto e primeiro lote

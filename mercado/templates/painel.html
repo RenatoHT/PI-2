@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Início{% endblock %}
+
+{% block header_title %}Mercado{% endblock %}
+
+{% block header_subtitle %}Painel do dia{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Três números lado a lado; no celular a grade continua com três colunas
+       porque cada cartão só tem um número e um rótulo curto. */
+
+    .summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+
+    .summary-card {
+        padding: 12px 8px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        text-align: center;
+    }
+
+    .summary-number {
+        display: block;
+        font-size: 28px;
+        font-weight: bold;
+        line-height: 1.1;
+    }
+
+    .summary-label {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--color-muted);
+    }
+
+    .summary-alert .summary-number {
+        color: var(--color-danger);
+    }
+
+    /* Atalhos grandes: a tela é usada em pé, no celular, com uma mão. */
+
+    .shortcuts {
+        display: grid;
+        gap: 12px;
+    }
+
+    .shortcut {
+        min-height: 64px;
+        font-size: 16px;
+    }
+
+    .shortcut-expirations {
+        background: #b45309;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<section class="summary" aria-label="Resumo de hoje">
+    <div class="summary-card {% if resumo.lotes_vencidos %}summary-alert{% endif %}">
+        <span class="summary-number">{{ resumo.lotes_vencidos }}</span>
+        <span class="summary-label">lotes vencidos</span>
+    </div>
+
+    <div class="summary-card">
+        <span class="summary-number">{{ resumo.lotes_proximos }}</span>
+        <span class="summary-label">vencem em {{ dias_padrao }} dias</span>
+    </div>
+
+    <div class="summary-card">
+        <span class="summary-number">{{ resumo.total_produtos }}</span>
+        <span class="summary-label">produtos</span>
+    </div>
+</section>
+
+<nav class="shortcuts" aria-label="Atalhos">
+    <a href="{% url 'estoque' %}" class="button shortcut">
+        Inventário
+    </a>
+
+    <a href="{% url 'vencimentos' %}" class="button shortcut shortcut-expirations">
+        Vencimentos
+    </a>
+
+    <a href="{% url 'scan' %}" class="button shortcut">
+        Scanner de venda
+    </a>
+</nav>
+
+{% endblock %}

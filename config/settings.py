@@ -50,6 +50,10 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Exige login em todas as telas
+    'django.contrib.auth.middleware.LoginRequiredMiddleware',
+    # Só usuário do mercado usa o painel
+    'mercado.middleware.ExigirPerfilDoMercadoMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -66,6 +70,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # Mostra o link Usuários só para administradores
+                'mercado.context_processors.papel_do_mercado',
             ],
         },
     },
@@ -129,3 +135,10 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+
+# Login. A sessão dura 30 dias para não pedir senha todo dia no celular.
+LOGIN_URL = 'entrar'
+LOGIN_REDIRECT_URL = 'painel'
+LOGOUT_REDIRECT_URL = 'entrar'
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30

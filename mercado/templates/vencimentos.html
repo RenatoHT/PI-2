@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Vencimentos{% endblock %}
+
+{% block header_title %}Vencimentos{% endblock %}
+
+{% block header_subtitle %}Lotes com estoque que vencem em breve{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Filtro por janela de dias: links, não formulário, para funcionar sem JS
+       e permitir favoritar "?dias=3". */
+
+    .filters {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .filter {
+        display: inline-flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        background: #f7f7f7;
+        color: var(--color-text);
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+    .filter-active {
+        border-color: var(--color-primary);
+        background: var(--color-primary);
+        color: #fff;
+    }
+
+    .filter-error {
+        padding: 12px;
+        margin-bottom: 16px;
+        border: 1px solid var(--color-danger);
+        border-radius: var(--radius);
+        color: var(--color-danger);
+        font-size: 14px;
+    }
+
+    .count {
+        margin: 0 0 12px;
+        font-size: 14px;
+        color: var(--color-muted);
+    }
+
+    /* Tabela (mesmo visual da tela de estoque) */
+
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .expirations-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .expirations-table th,
+    .expirations-table td {
+        padding: 10px 8px;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .expirations-table th {
+        background: #f5f5f5;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .expirations-table small {
+        display: block;
+        color: var(--color-muted);
+    }
+
+    .expired-row td {
+        background: #fdecee;
+    }
+
+    .expired-label {
+        color: var(--color-danger);
+        font-weight: bold;
+    }
+
+    .empty-expirations {
+        padding: 16px;
+        background: #f5f5f5;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-top: 16px;
+        color: #333;
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+        .expirations-table {
+            font-size: 12px;
+        }
+
+        .expirations-table th,
+        .expirations-table td {
+            padding: 9px 6px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if erro %}
+<p class="filter-error" role="alert">{{ erro }}</p>
+{% endif %}
+
+<nav class="filters" aria-label="Janela de dias">
+    {% for opcao in filtros %}
+    <a
+        href="?dias={{ opcao }}"
+        class="filter {% if opcao == dias %}filter-active{% endif %}"
+        {% if opcao == dias %}aria-current="page"{% endif %}
+    >
+        {{ opcao }} dias
+    </a>
+    {% endfor %}
+</nav>
+
+{% if lotes %}
+
+<p class="count">
+    {{ lotes|length }} lote{{ lotes|length|pluralize }} até {{ limite|date:"d/m/Y" }}
+</p>
+
+<div class="table-container">
+    <table class="expirations-table">
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Lote</th>
+                <th>Validade</th>
+                <th>Qtd.</th>
+                <th>Situação</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for lote in lotes %}
+            <tr class="{% if lote.vencido %}expired-row{% endif %}">
+                <td>
+                    {{ lote.produto }}
+                    {% if lote.marca %}<small>{{ lote.marca }}</small>{% endif %}
+                    <small>{{ lote.codigo_barras }}</small>
+                </td>
+                <td>
+                    {% if lote.numero_lote %}
+                        {{ lote.numero_lote }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>{{ lote.validade|date:"d/m/Y" }}</td>
+                <td>{{ lote.quantidade }}</td>
+                <td class="{% if lote.vencido %}expired-label{% endif %}">
+                    {{ lote.situacao }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% elif not erro %}
+
+<div class="empty-expirations">
+    <p>Nenhum lote com estoque vence nos próximos {{ dias }} dias.</p>
+</div>
+
+{% endif %}
+
+<a href="{% url 'estoque' %}" class="back-link">
+    ← Voltar ao inventário
+</a>
+
+{% endblock %}

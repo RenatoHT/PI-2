@@ -1,8 +1,21 @@
 from django.urls import path
 from . import views
+from . import views_painel
+from . import views_usuarios
 from . import api
 
 urlpatterns = [
+    # Painel inicial e vencimentos
+    path("", views_painel.painel, name="painel"),
+    path("vencimentos/", views_painel.listar_vencimentos, name="vencimentos"),
+    # Login e usuários do mercado (todas as outras rotas exigem sessão)
+    path("entrar/", views_usuarios.TelaDeLogin.as_view(), name="entrar"),
+    path("sair/", views_usuarios.Sair.as_view(), name="sair"),
+    path("senha/", views_usuarios.TrocarMinhaSenha.as_view(), name="senha_propria"),
+    path("usuarios/", views_usuarios.listar_usuarios, name="usuarios"),
+    path("usuarios/novo/", views_usuarios.criar_usuario, name="usuario_novo"),
+    path("usuarios/<int:usuario_id>/senha/", views_usuarios.definir_senha_usuario, name="usuario_senha"),
+    path("usuarios/<int:usuario_id>/ativo/", views_usuarios.alternar_ativo_usuario, name="usuario_ativo"),
     path("scan/", views.scan, name="scan"),
     path("lookup/<str:barcode>/", views.lookup_product),
     path("stock/", views.stock, name="estoque"),
